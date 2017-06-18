@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/die-net/lrucache"
-
 	"./database"
 	"./models"
+
+	"github.com/die-net/lrucache"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 )
@@ -60,39 +60,40 @@ func main() {
 
 func PostsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	db := database.Connect()
-	defer db.Close()
-
-	query := `SELECT posts.title, posts.slug, posts.url, posts.summary, posts.date, posts.sentiment, posts.image, 
-		posts.category_id, cats.slug FROM aggregator_post as posts INNER JOIN aggregator_category AS cats 
-		ON posts.category_id = cats.title ORDER BY date DESC  LIMIT 100;`
-	rows, err := db.Query(query)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
-
-	posts := make([]models.Post, 0)
-	for rows.Next() {
-		post := models.Post{}
-		err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
-			&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug)
-		if err != nil {
-			panic(err)
-		}
-		posts = append(posts, post)
-	}
-	if err = rows.Err(); err != nil {
-		panic(err)
-	}
-
-	j, err := json.Marshal(posts)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	cached, isCached := cache.Get("posts")
 	if isCached == false {
+		db := database.Connect()
+		defer db.Close()
+
+		query := `SELECT posts.title, posts.slug, posts.url, posts.summary, posts.date, posts.sentiment, posts.image, 
+		posts.category_id, cats.slug FROM aggregator_post as posts INNER JOIN aggregator_category AS cats 
+		ON posts.category_id = cats.title ORDER BY date DESC  LIMIT 100;`
+		rows, err := db.Query(query)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		posts := make([]models.Post, 0)
+		for rows.Next() {
+			post := models.Post{}
+			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
+				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug)
+			if err != nil {
+				panic(err)
+			}
+			posts = append(posts, post)
+		}
+		if err = rows.Err(); err != nil {
+			panic(err)
+		}
+
+		j, err := json.Marshal(posts)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		cache.Set("posts", j)
 		w.Write(j)
 	}
@@ -101,36 +102,37 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 
 func CategoryHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	db := database.Connect()
-	defer db.Close()
-
-	query := `SELECT title, slug FROM aggregator_category;`
-	rows, err := db.Query(query)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
-
-	categories := make([]models.Category, 0)
-	for rows.Next() {
-		category := models.Category{}
-		err := rows.Scan(&category.Title, &category.Slug)
-		if err != nil {
-			panic(err)
-		}
-		categories = append(categories, category)
-	}
-	if err = rows.Err(); err != nil {
-		panic(err)
-	}
-
-	j, err := json.Marshal(categories)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	cached, isCached := cache.Get("cats")
 	if isCached == false {
+		db := database.Connect()
+		defer db.Close()
+
+		query := `SELECT title, slug FROM aggregator_category;`
+		rows, err := db.Query(query)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		categories := make([]models.Category, 0)
+		for rows.Next() {
+			category := models.Category{}
+			err := rows.Scan(&category.Title, &category.Slug)
+			if err != nil {
+				panic(err)
+			}
+			categories = append(categories, category)
+		}
+		if err = rows.Err(); err != nil {
+			panic(err)
+		}
+
+		j, err := json.Marshal(categories)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		cache.Set("cats", j)
 		w.Write(j)
 	}
@@ -140,40 +142,40 @@ func CategoryHandler(w http.ResponseWriter, r *http.Request) {
 func PostsByCatHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	db := database.Connect()
-	defer db.Close()
+	cached, isCached := cache.Get("posts_cat")
+	if isCached == false {
+		db := database.Connect()
+		defer db.Close()
 
-	query := fmt.Sprintf(`SELECT posts.title, posts.slug, posts.url, posts.summary, posts.date AS 
+		query := fmt.Sprintf(`SELECT posts.title, posts.slug, posts.url, posts.summary, posts.date AS 
 		dt, posts.sentiment, posts.image, posts.category_id, cats.slug AS cat FROM aggregator_post 
 		AS posts INNER JOIN aggregator_category AS cats ON posts.category_id = cats.title WHERE 
 		cats.slug='%s' ORDER BY dt DESC LIMIT 100;`, strings.Split(r.RequestURI, "/")[2])
-	rows, err := db.Query(query)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
-
-	posts := make([]models.Post, 0)
-	for rows.Next() {
-		post := models.Post{}
-		err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
-			&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug)
+		rows, err := db.Query(query)
 		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		posts := make([]models.Post, 0)
+		for rows.Next() {
+			post := models.Post{}
+			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
+				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug)
+			if err != nil {
+				panic(err)
+			}
+			posts = append(posts, post)
+		}
+		if err = rows.Err(); err != nil {
 			panic(err)
 		}
-		posts = append(posts, post)
-	}
-	if err = rows.Err(); err != nil {
-		panic(err)
-	}
 
-	j, err := json.Marshal(posts)
-	if err != nil {
-		log.Fatal(err)
-	}
+		j, err := json.Marshal(posts)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	cached, isCached := cache.Get("posts_cat")
-	if isCached == false {
 		cache.Set("posts_cat", j)
 		w.Write(j)
 	}
@@ -184,40 +186,40 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	postSlug := strings.Split(r.RequestURI, "/")[2]
 
-	db := database.Connect()
-	defer db.Close()
+	cached, isCached := cache.Get("post_" + postSlug)
+	if isCached == false {
+		db := database.Connect()
+		defer db.Close()
 
-	query := fmt.Sprintf(`SELECT posts.title, posts.slug, posts.url, posts.summary, posts.date, 
+		query := fmt.Sprintf(`SELECT posts.title, posts.slug, posts.url, posts.summary, posts.date, 
 		posts.sentiment, posts.image, posts.category_id, cats.slug FROM aggregator_post as posts 
 		INNER JOIN aggregator_category as cats ON posts.category_id = cats.title WHERE 
 		posts.slug='%s';`, postSlug)
-	rows, err := db.Query(query)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
-
-	posts := make([]models.Post, 0)
-	for rows.Next() {
-		post := models.Post{}
-		err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date, &post.Sentiment,
-			&post.Image, &post.CategoryID.Title, &post.CategoryID.Slug)
+		rows, err := db.Query(query)
 		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		posts := make([]models.Post, 0)
+		for rows.Next() {
+			post := models.Post{}
+			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date, &post.Sentiment,
+				&post.Image, &post.CategoryID.Title, &post.CategoryID.Slug)
+			if err != nil {
+				panic(err)
+			}
+			posts = append(posts, post)
+		}
+		if err = rows.Err(); err != nil {
 			panic(err)
 		}
-		posts = append(posts, post)
-	}
-	if err = rows.Err(); err != nil {
-		panic(err)
-	}
 
-	j, err := json.Marshal(posts)
-	if err != nil {
-		log.Fatal(err)
-	}
+		j, err := json.Marshal(posts)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	cached, isCached := cache.Get("post_" + postSlug)
-	if isCached == false {
 		cache.Set("post_"+postSlug, j)
 		w.Write(j)
 	}
@@ -226,43 +228,44 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 
 func TodayHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	db := database.Connect()
-	defer db.Close()
-
-	dateBack := time.Now().AddDate(0, 0, -2) //2 days back for "today"
-	fmt.Println(dateBack)
-
-	query := fmt.Sprintf(`SELECT posts.title, posts.slug, posts.url, posts.summary, posts.date, posts.sentiment, 
-		posts.image, posts.category_id, cats.slug FROM aggregator_post as posts INNER JOIN 
-		aggregator_category as cats ON posts.category_id = cats.title WHERE date > '%s' ORDER BY date DESC;`, dateBack)
-
-	rows, err := db.Query(query)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
-
-	posts := make([]models.Post, 0)
-	for rows.Next() {
-		post := models.Post{}
-		err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date, &post.Sentiment, &post.Image,
-			&post.CategoryID.Title, &post.CategoryID.Slug)
-		if err != nil {
-			panic(err)
-		}
-		posts = append(posts, post)
-	}
-	if err = rows.Err(); err != nil {
-		panic(err)
-	}
-
-	j, err := json.Marshal(posts)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	cached, isCached := cache.Get("today")
 	if isCached == false {
+		db := database.Connect()
+		defer db.Close()
+
+		dateBack := time.Now().AddDate(0, 0, -2) //2 days back for "today"
+		fmt.Println(dateBack)
+
+		query := fmt.Sprintf(`SELECT posts.title, posts.slug, posts.url, posts.summary, posts.date, posts.sentiment, 
+		posts.image, posts.category_id, cats.slug FROM aggregator_post as posts INNER JOIN 
+		aggregator_category as cats ON posts.category_id = cats.title WHERE date > '%s' ORDER BY date DESC;`, dateBack)
+
+		rows, err := db.Query(query)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		posts := make([]models.Post, 0)
+		for rows.Next() {
+			post := models.Post{}
+			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date, &post.Sentiment, &post.Image,
+				&post.CategoryID.Title, &post.CategoryID.Slug)
+			if err != nil {
+				panic(err)
+			}
+			posts = append(posts, post)
+		}
+		if err = rows.Err(); err != nil {
+			panic(err)
+		}
+
+		j, err := json.Marshal(posts)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		cache.Set("today", j)
 		w.Write(j)
 	}
