@@ -18,6 +18,7 @@ import (
 
 func init() {
 	//note, this package isn't fully compatible with pydotenv!
+	// TODO separate envs in appropriate folders finally
 	err := godotenv.Load("../.env")
 	if err != nil {
 		log.Fatal("Error loading environment variables.")
@@ -25,7 +26,10 @@ func init() {
 }
 
 func main() {
+	Host := os.Getenv("API_HOST")
+
 	app := mux.NewRouter()
+	app.Host(Host)
 
 	app.HandleFunc("/", RedirectHandler)
 	app.HandleFunc("/posts/", PostsHandler)
@@ -41,12 +45,13 @@ func main() {
 
 	server := &http.Server{
 		Handler:      app,
-		Addr:         os.Getenv("DEV_API_HOST"),
+		Addr:         Host + ":" + os.Getenv("API_PORT"),
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
 
 	log.Fatal(server.ListenAndServe())
+
 }
 
 func PostsHandler(w http.ResponseWriter, r *http.Request) {
@@ -59,7 +64,7 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 		ON posts.category_id = cats.title ORDER BY date DESC  LIMIT 100;`
 	rows, err := db.Query(query)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("%s", err), 404)
+		log.Fatal(err)
 	}
 	defer rows.Close()
 
@@ -79,7 +84,7 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 
 	j, err := json.Marshal(posts)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("%s", err), 500)
+		log.Fatal(err)
 	}
 	w.Write(j)
 }
@@ -111,7 +116,7 @@ func CategoryHandler(w http.ResponseWriter, r *http.Request) {
 
 	j, err := json.Marshal(categories)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("%s", err), 500)
+		log.Fatal(err)
 	}
 	w.Write(j)
 }
@@ -128,7 +133,7 @@ func PostsByCatHandler(w http.ResponseWriter, r *http.Request) {
 		cats.slug='%s' ORDER BY dt DESC LIMIT 100;`, strings.Split(r.RequestURI, "/")[2])
 	rows, err := db.Query(query)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("%s", err), 404)
+		log.Fatal(err)
 	}
 	defer rows.Close()
 
@@ -148,7 +153,7 @@ func PostsByCatHandler(w http.ResponseWriter, r *http.Request) {
 
 	j, err := json.Marshal(posts)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("%s", err), 500)
+		log.Fatal(err)
 	}
 	w.Write(j)
 }
@@ -164,7 +169,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 		posts.slug='%s';`, strings.Split(r.RequestURI, "/")[2])
 	rows, err := db.Query(query)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("%s", err), 404)
+		log.Fatal(err)
 	}
 	defer rows.Close()
 
@@ -184,7 +189,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 
 	j, err := json.Marshal(posts)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("%s", err), 500)
+		log.Fatal(err)
 	}
 	w.Write(j)
 }
@@ -203,7 +208,7 @@ func TodayHandler(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := db.Query(query)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("%s", err), 404)
+		log.Fatal(err)
 	}
 	defer rows.Close()
 
@@ -223,7 +228,7 @@ func TodayHandler(w http.ResponseWriter, r *http.Request) {
 
 	j, err := json.Marshal(posts)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("%s", err), 500)
+		log.Fatal(err)
 	}
 	w.Write(j)
 }
@@ -240,6 +245,6 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 		RedirectTitle: os.Getenv("API_REDIRECT_TITLE"),
 		RedirectUrl:   string(os.Getenv("API_DESCRIPTION_URL"))})
 	if err != nil {
-		http.Error(w, fmt.Sprintf("%s", err), 500)
+		log.Fatal(err)
 	}
 }

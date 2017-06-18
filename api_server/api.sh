@@ -1,9 +1,10 @@
 #!/bin/bash
 
-PROJECT=stckmrkt
+PROJECT=qprob
 
-cd /home/$PROJECT
+cd /home/$PROJECT/api_server
 
 source /usr/local/anaconda/bin/activate /usr/local/anaconda/envs/$PROJECT && \
-  /usr/local/anaconda/envs/$PROJECT/bin/python /home/$PROJECT/api_server/run.py && \
+  /home/$PROJECT/api_server/api_server && \
   source /usr/local/anaconda/bin/deactivate
+

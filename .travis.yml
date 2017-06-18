@@ -10,7 +10,6 @@ branches:
 install:
   - go get ./api_server
   - go get github.com/go-sql-driver/mysql
-  - go getpackage github.com/microcosm-cc/bluemonday
   - go getpackage github.com/gorilla/mux
   - go getpackage github.com/joho/godotenv
 
