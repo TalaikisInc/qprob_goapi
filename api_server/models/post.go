@@ -3,10 +3,8 @@ package models
 import (
 	"encoding/json"
 
-	"github.com/microcosm-cc/bluemonday"
+	"../strip"
 )
-
-var sanitizer = bluemonday.UGCPolicy()
 
 type Post struct {
 	Title      string
@@ -35,7 +33,7 @@ func (p *Post) MarshalJSON() ([]byte, error) {
 		p.Title,
 		p.Slug,
 		p.URL,
-		p.Summary,
+		strip.StripTags(p.Summary),
 		p.Date,
 		p.Sentiment,
 		p.Image,
@@ -53,7 +51,7 @@ func (p *Post) UnmarshalJSON(b []byte) error {
 	p.Title = temp.Title
 	p.Slug = temp.Slug
 	p.URL = temp.URL
-	p.Summary = sanitizer.Sanitize(temp.Summary)
+	p.Summary = temp.Summary
 	p.Date = temp.Date
 	p.Sentiment = temp.Sentiment
 	p.Image = temp.Image
