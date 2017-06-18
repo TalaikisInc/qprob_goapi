@@ -10,11 +10,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/die-net/lrucache"
+
 	"./database"
 	"./models"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 )
+
+var cache = lrucache.New(104857600, 10800) //100 Mb, 3 hours
 
 func init() {
 	//note, this package isn't fully compatible with pydotenv!
@@ -86,7 +90,13 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	w.Write(j)
+
+	cached, isCached := cache.Get("posts")
+	if isCached == false {
+		cache.Set("posts", j)
+		w.Write(j)
+	}
+	w.Write(cached)
 }
 
 func CategoryHandler(w http.ResponseWriter, r *http.Request) {
@@ -118,7 +128,13 @@ func CategoryHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	w.Write(j)
+
+	cached, isCached := cache.Get("cats")
+	if isCached == false {
+		cache.Set("cats", j)
+		w.Write(j)
+	}
+	w.Write(cached)
 }
 
 func PostsByCatHandler(w http.ResponseWriter, r *http.Request) {
@@ -155,18 +171,26 @@ func PostsByCatHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	w.Write(j)
+
+	cached, isCached := cache.Get("posts_cat")
+	if isCached == false {
+		cache.Set("posts_cat", j)
+		w.Write(j)
+	}
+	w.Write(cached)
 }
 
 func PostHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	postSlug := strings.Split(r.RequestURI, "/")[2]
+
 	db := database.Connect()
 	defer db.Close()
 
 	query := fmt.Sprintf(`SELECT posts.title, posts.slug, posts.url, posts.summary, posts.date, 
 		posts.sentiment, posts.image, posts.category_id, cats.slug FROM aggregator_post as posts 
 		INNER JOIN aggregator_category as cats ON posts.category_id = cats.title WHERE 
-		posts.slug='%s';`, strings.Split(r.RequestURI, "/")[2])
+		posts.slug='%s';`, postSlug)
 	rows, err := db.Query(query)
 	if err != nil {
 		log.Fatal(err)
@@ -191,7 +215,13 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	w.Write(j)
+
+	cached, isCached := cache.Get("post_" + postSlug)
+	if isCached == false {
+		cache.Set("post_"+postSlug, j)
+		w.Write(j)
+	}
+	w.Write(cached)
 }
 
 func TodayHandler(w http.ResponseWriter, r *http.Request) {
@@ -230,7 +260,13 @@ func TodayHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	w.Write(j)
+
+	cached, isCached := cache.Get("today")
+	if isCached == false {
+		cache.Set("today", j)
+		w.Write(j)
+	}
+	w.Write(cached)
 }
 
 func RedirectHandler(w http.ResponseWriter, r *http.Request) {

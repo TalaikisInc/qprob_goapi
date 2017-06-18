@@ -1,17 +1,16 @@
+language: go
 sudo: false
 
 go:
- - 1.8
+ - 1.8.x
+ - master
 
 branches:
   only:
   - master
 
 install:
-  - go get ./api_server
-  - go get github.com/go-sql-driver/mysql
-  - go getpackage github.com/gorilla/mux
-  - go getpackage github.com/joho/godotenv
+  - #
 
 notifications:
   email:
@@ -19,4 +18,5 @@ notifications:
     on_failure: always
 
 script:
+    - go get -t -v ./...
     - go build ./api_server
