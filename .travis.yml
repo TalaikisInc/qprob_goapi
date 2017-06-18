@@ -1,0 +1,19 @@
+sudo: false
+
+go:
+ - 1.8
+
+branches:
+  only:
+  - master
+
+install:
+  - go get ./api_server
+
+notifications:
+  email:
+    on_success: never
+    on_failure: always
+
+script:
+    - go build ./api_server
