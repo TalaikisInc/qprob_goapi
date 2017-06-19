@@ -142,7 +142,9 @@ func CategoryHandler(w http.ResponseWriter, r *http.Request) {
 func PostsByCatHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	cached, isCached := cache.Get("posts_cat")
+	cat := strings.Split(r.RequestURI, "/")[2]
+
+	cached, isCached := cache.Get("posts_cat_" + cat)
 	if isCached == false {
 		db := database.Connect()
 		defer db.Close()
@@ -150,7 +152,7 @@ func PostsByCatHandler(w http.ResponseWriter, r *http.Request) {
 		query := fmt.Sprintf(`SELECT posts.title, posts.slug, posts.url, posts.summary, posts.date AS 
 		dt, posts.sentiment, posts.image, posts.category_id, cats.slug AS cat FROM aggregator_post 
 		AS posts INNER JOIN aggregator_category AS cats ON posts.category_id = cats.title WHERE 
-		cats.slug='%s' ORDER BY dt DESC LIMIT 100;`, strings.Split(r.RequestURI, "/")[2])
+		cats.slug='%s' ORDER BY dt DESC LIMIT 100;`, cat)
 		rows, err := db.Query(query)
 		if err != nil {
 			log.Fatal(err)
@@ -176,7 +178,7 @@ func PostsByCatHandler(w http.ResponseWriter, r *http.Request) {
 			log.Fatal(err)
 		}
 
-		cache.Set("posts_cat", j)
+		cache.Set("posts_cat_"+cat, j)
 		w.Write(j)
 	}
 	w.Write(cached)
