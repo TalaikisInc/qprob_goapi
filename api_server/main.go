@@ -152,7 +152,7 @@ func PostsByCatHandler(w http.ResponseWriter, r *http.Request) {
 		defer db.Close()
 
 		query := fmt.Sprintf(`SELECT posts.title, posts.slug, posts.url, posts.summary, posts.date AS 
-		dt, posts.sentiment, posts.image, posts.category_id, cats.slug, cats.thumbnail FROM aggregator_post 
+		dt, posts.sentiment, COALESCE(posts.image, ""), posts.category_id, cats.slug, COALESCE(cats.thumbnail, "") FROM aggregator_post 
 		AS posts INNER JOIN aggregator_category AS cats ON posts.category_id = cats.title WHERE 
 		cats.slug='%s' ORDER BY dt DESC LIMIT 100;`, cat)
 		rows, err := db.Query(query)
@@ -196,7 +196,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 		defer db.Close()
 
 		query := fmt.Sprintf(`SELECT posts.title, posts.slug, posts.url, posts.summary, posts.date, 
-		posts.sentiment, posts.image, posts.category_id, cats.slug, cats.thumbnail FROM aggregator_post as posts 
+		posts.sentiment, COALESCE(posts.image, ""), posts.category_id, cats.slug, COALESCE(cats.thumbnail, "") FROM aggregator_post as posts 
 		INNER JOIN aggregator_category as cats ON posts.category_id = cats.title WHERE 
 		posts.slug='%s';`, postSlug)
 		rows, err := db.Query(query)
@@ -242,7 +242,7 @@ func TodayHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(dateBack)
 
 		query := fmt.Sprintf(`SELECT posts.title, posts.slug, posts.url, posts.summary, posts.date, posts.sentiment, 
-		posts.image, posts.category_id, cats.slug, cats.thumbnail FROM aggregator_post as posts INNER JOIN 
+		COALESCE(posts.image, ""), posts.category_id, cats.slug, COALESCE(cats.thumbnail, "") FROM aggregator_post as posts INNER JOIN 
 		aggregator_category as cats ON posts.category_id = cats.title WHERE date > '%s' ORDER BY date DESC;`, dateBack)
 
 		rows, err := db.Query(query)
