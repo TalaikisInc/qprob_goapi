@@ -67,7 +67,7 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 		defer db.Close()
 
 		query := `SELECT posts.title, posts.slug, posts.url, posts.summary, posts.date, posts.sentiment, posts.image, 
-		posts.category_id, cats.slug FROM aggregator_post as posts INNER JOIN aggregator_category AS cats 
+		posts.category_id, cats.slug, cats.thumbnail FROM aggregator_post as posts INNER JOIN aggregator_category AS cats 
 		ON posts.category_id = cats.title ORDER BY date DESC  LIMIT 100;`
 		rows, err := db.Query(query)
 		if err != nil {
@@ -79,7 +79,7 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
-				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug)
+				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug, &post.CategoryID.Thumbnail)
 			if err != nil {
 				panic(err)
 			}
@@ -108,7 +108,7 @@ func CategoryHandler(w http.ResponseWriter, r *http.Request) {
 		db := database.Connect()
 		defer db.Close()
 
-		query := `SELECT title, slug FROM aggregator_category;`
+		query := `SELECT title, slug, COALESCE(thumbnail, "") FROM aggregator_category;`
 		rows, err := db.Query(query)
 		if err != nil {
 			log.Fatal(err)
@@ -118,10 +118,12 @@ func CategoryHandler(w http.ResponseWriter, r *http.Request) {
 		categories := make([]models.Category, 0)
 		for rows.Next() {
 			category := models.Category{}
-			err := rows.Scan(&category.Title, &category.Slug)
+
+			err := rows.Scan(&category.Title, &category.Slug, &category.Thumbnail)
 			if err != nil {
 				panic(err)
 			}
+
 			categories = append(categories, category)
 		}
 		if err = rows.Err(); err != nil {
@@ -150,7 +152,7 @@ func PostsByCatHandler(w http.ResponseWriter, r *http.Request) {
 		defer db.Close()
 
 		query := fmt.Sprintf(`SELECT posts.title, posts.slug, posts.url, posts.summary, posts.date AS 
-		dt, posts.sentiment, posts.image, posts.category_id, cats.slug AS cat FROM aggregator_post 
+		dt, posts.sentiment, posts.image, posts.category_id, cats.slug, cats.thumbnail FROM aggregator_post 
 		AS posts INNER JOIN aggregator_category AS cats ON posts.category_id = cats.title WHERE 
 		cats.slug='%s' ORDER BY dt DESC LIMIT 100;`, cat)
 		rows, err := db.Query(query)
@@ -163,7 +165,7 @@ func PostsByCatHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
-				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug)
+				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug, &post.CategoryID.Thumbnail)
 			if err != nil {
 				panic(err)
 			}
@@ -194,7 +196,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 		defer db.Close()
 
 		query := fmt.Sprintf(`SELECT posts.title, posts.slug, posts.url, posts.summary, posts.date, 
-		posts.sentiment, posts.image, posts.category_id, cats.slug FROM aggregator_post as posts 
+		posts.sentiment, posts.image, posts.category_id, cats.slug, cats.thumbnail FROM aggregator_post as posts 
 		INNER JOIN aggregator_category as cats ON posts.category_id = cats.title WHERE 
 		posts.slug='%s';`, postSlug)
 		rows, err := db.Query(query)
@@ -207,7 +209,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date, &post.Sentiment,
-				&post.Image, &post.CategoryID.Title, &post.CategoryID.Slug)
+				&post.Image, &post.CategoryID.Title, &post.CategoryID.Slug, &post.CategoryID.Thumbnail)
 			if err != nil {
 				panic(err)
 			}
@@ -240,7 +242,7 @@ func TodayHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(dateBack)
 
 		query := fmt.Sprintf(`SELECT posts.title, posts.slug, posts.url, posts.summary, posts.date, posts.sentiment, 
-		posts.image, posts.category_id, cats.slug FROM aggregator_post as posts INNER JOIN 
+		posts.image, posts.category_id, cats.slug, cats.thumbnail FROM aggregator_post as posts INNER JOIN 
 		aggregator_category as cats ON posts.category_id = cats.title WHERE date > '%s' ORDER BY date DESC;`, dateBack)
 
 		rows, err := db.Query(query)
@@ -253,7 +255,7 @@ func TodayHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date, &post.Sentiment, &post.Image,
-				&post.CategoryID.Title, &post.CategoryID.Slug)
+				&post.CategoryID.Title, &post.CategoryID.Slug, &post.CategoryID.Thumbnail)
 			if err != nil {
 				panic(err)
 			}
