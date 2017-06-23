@@ -66,8 +66,8 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 		db := database.Connect()
 		defer db.Close()
 
-		query := `SELECT posts.title, posts.slug, posts.url, posts.summary, posts.date, posts.sentiment, posts.image, 
-		posts.category_id, cats.slug, cats.thumbnail FROM aggregator_post as posts INNER JOIN aggregator_category AS cats 
+		query := `SELECT posts.title, posts.slug, posts.url, posts.summary, posts.date, posts.sentiment, COALESCE(posts.image, ""), 
+		posts.category_id, cats.slug, COALESCE(cats.thumbnail, "") FROM aggregator_post as posts INNER JOIN aggregator_category AS cats 
 		ON posts.category_id = cats.title ORDER BY date DESC  LIMIT 100;`
 		rows, err := db.Query(query)
 		if err != nil {
