@@ -108,7 +108,10 @@ func CategoryHandler(w http.ResponseWriter, r *http.Request) {
 		db := database.Connect()
 		defer db.Close()
 
-		query := `SELECT title, slug, COALESCE(thumbnail, "") FROM aggregator_category;`
+		query := fmt.Sprintf(`SELECT cats.title, cats.slug, COALESCE(cats.thumbnail, ""), count(posts.title) AS cnt 
+		FROM aggregator_category AS cats INNER JOIN aggregator_post AS posts ON posts.category_id = cats.title 
+		GROUP BY cats.title;`)
+
 		rows, err := db.Query(query)
 		if err != nil {
 			log.Fatal(err)
@@ -119,7 +122,7 @@ func CategoryHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			category := models.Category{}
 
-			err := rows.Scan(&category.Title, &category.Slug, &category.Thumbnail)
+			err := rows.Scan(&category.Title, &category.Slug, &category.Thumbnail, &category.PostCnt)
 			if err != nil {
 				panic(err)
 			}
