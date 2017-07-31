@@ -1,5 +1,5 @@
 language: go
-sudo: false
+sudo: true
 
 go:
  - 1.8.x
@@ -10,8 +10,8 @@ branches:
   - master
 
 before_install:
-  - apt update -q
-  - apt install git -y
+  - sudo apt update -q
+  - sudo apt install git -y
 
 install:
   - go get github.com/die-net/lrucache
