@@ -9,8 +9,15 @@ branches:
   only:
   - master
 
+before_install:
+  - apt update -q
+  - apt install git -y
+
 install:
-  - #
+  - go get github.com/die-net/lrucache
+	- go get github.com/gorilla/mux
+	- go get github.com/joho/godotenv
+  - go get github.com/go-sql-driver/mysql
 
 notifications:
   email:
@@ -18,5 +25,6 @@ notifications:
     on_failure: always
 
 script:
-    - go get -t -v ./...
-    - go build ./api_server
+    - git clone https://github.com/xenu256/qprob_goapi
+    - cd qprob_goapi/api_server
+    - go build
