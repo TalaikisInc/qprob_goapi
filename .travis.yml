@@ -25,6 +25,4 @@ notifications:
     on_failure: always
 
 script:
-    - git clone https://github.com/xenu256/qprob_goapi
-    - cd qprob_goapi/api_server
-    - go build
+    - travis.sh

@@ -1,3 +1,9 @@
+#!/bin/bash
+
+mkdir
+cd /home/sources
+git clone https://github.com/xenu256/qprob_goapi
+
 for PROJECT in bsnssnws entreprnrnws parameterless qprob realestenews stckmrkt webdnl
 do
         cp -R /home/sources/qprob_goapi/api_server/* /home/$PROJECT/api_server
