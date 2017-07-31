@@ -15,8 +15,8 @@ before_install:
 
 install:
   - go get github.com/die-net/lrucache
-	- go get github.com/gorilla/mux
-	- go get github.com/joho/godotenv
+  - go get github.com/gorilla/mux
+  - go get github.com/joho/godotenv
   - go get github.com/go-sql-driver/mysql
 
 notifications:
