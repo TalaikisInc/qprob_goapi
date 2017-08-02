@@ -72,11 +72,7 @@ func TagsByPostHandler(w http.ResponseWriter, r *http.Request) {
 func PostsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
-	p, err := strconv.Atoi(page)
-	if err != nil {
-		log.Fatal(err)
-	}
+	page, p := StrToInt(url.QueryEscape(strings.Split(r.RequestURI, "/")[3]))
 
 	cached, isCached := cache.Get("posts_" + page)
 	if isCached == false {
@@ -134,11 +130,7 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 func PostsHandler2(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
-	p, err := strconv.Atoi(page)
-	if err != nil {
-		log.Fatal(err)
-	}
+	page, p := StrToInt(url.QueryEscape(strings.Split(r.RequestURI, "/")[3]))
 
 	cached, isCached := cache.Get("posts2_" + page)
 	if isCached == false {
@@ -202,11 +194,7 @@ func PostsByCatHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	cat := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
-	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[4])
-	p, err := strconv.Atoi(page)
-	if err != nil {
-		log.Fatal(err)
-	}
+	page, p := StrToInt(url.QueryEscape(strings.Split(r.RequestURI, "/")[4]))
 
 	cached, isCached := cache.Get("posts_cat_" + cat + "_" + page)
 	if isCached == false {
@@ -265,13 +253,9 @@ func PostsByTagHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	tag := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
-	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[4])
-	p, err := strconv.Atoi(page)
-	if err != nil {
-		log.Fatal(err)
-	}
+	page, p := StrToInt(url.QueryEscape(strings.Split(r.RequestURI, "/")[4]))
 
-	cached, isCached := cache.Get("posts_tag_" + tag)
+	cached, isCached := cache.Get("posts_tag_" + tag + "_" + page)
 	if isCached == false {
 		db := database.Connect()
 		defer db.Close()
@@ -319,7 +303,7 @@ func PostsByTagHandler(w http.ResponseWriter, r *http.Request) {
 			log.Fatal(err)
 		}
 
-		cache.Set("posts_tag_"+tag, j)
+		cache.Set("posts_tag_"+tag+"_"+page, j)
 		w.Write(j)
 	}
 	w.Write(cached)
@@ -331,11 +315,7 @@ func PostsByCalendarHandler(w http.ResponseWriter, r *http.Request) {
 	year := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
 	month := url.QueryEscape(strings.Split(r.RequestURI, "/")[4])
 	day := url.QueryEscape(strings.Split(r.RequestURI, "/")[5])
-	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[6])
-	p, err := strconv.Atoi(page)
-	if err != nil {
-		log.Fatal(err)
-	}
+	page, p := StrToInt(url.QueryEscape(strings.Split(r.RequestURI, "/")[6]))
 
 	cached, isCached := cache.Get("posts_cal_" + year + "_" + month + "_" + day + "_" + page)
 	if isCached == false {
@@ -393,11 +373,7 @@ func PostsByCalendarHandler(w http.ResponseWriter, r *http.Request) {
 func TodayPostsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
-	p, err := strconv.Atoi(page)
-	if err != nil {
-		log.Fatal(err)
-	}
+	page, p := StrToInt(url.QueryEscape(strings.Split(r.RequestURI, "/")[3]))
 
 	cached, isCached := cache.Get("today_" + page)
 	if isCached == false {
@@ -460,10 +436,10 @@ func FilledTagsHandler(w http.ResponseWriter, r *http.Request) {
 	cnt := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
 	c, err := strconv.Atoi(cnt)
 	if err != nil {
-		log.Fatal(err)
+		return
 	}
 
-	cached, isCached := cache.Get("tags_pop")
+	cached, isCached := cache.Get("tags_pop_" + cnt)
 	if isCached == false {
 		db := database.Connect()
 		defer db.Close()
@@ -504,7 +480,7 @@ func FilledTagsHandler(w http.ResponseWriter, r *http.Request) {
 			log.Fatal(err)
 		}
 
-		cache.Set("tags_pop", j)
+		cache.Set("tags_pop_"+cnt, j)
 		w.Write(j)
 	}
 	w.Write(cached)
@@ -513,11 +489,7 @@ func FilledTagsHandler(w http.ResponseWriter, r *http.Request) {
 func TagsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
-	p, err := strconv.Atoi(page)
-	if err != nil {
-		log.Fatal(err)
-	}
+	page, p := StrToInt(url.QueryEscape(strings.Split(r.RequestURI, "/")[3]))
 
 	cached, isCached := cache.Get("tags_" + page)
 	if isCached == false {
@@ -569,11 +541,7 @@ func TagsHandler(w http.ResponseWriter, r *http.Request) {
 func CategoriesHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
-	p, err := strconv.Atoi(page)
-	if err != nil {
-		log.Fatal(err)
-	}
+	page, p := StrToInt(url.QueryEscape(strings.Split(r.RequestURI, "/")[3]))
 
 	cached, isCached := cache.Get("cats_" + page)
 	if isCached == false {
