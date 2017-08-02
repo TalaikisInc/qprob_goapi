@@ -42,6 +42,7 @@ func main() {
 	app.HandleFunc("/post/{postSlug}/", PostHandler).Methods("GET")
 	app.HandleFunc("/today/", TodayHandler).Methods("GET")
 	app.HandleFunc("/cats/", CategoriesHandler).Methods("GET")
+	app.HandleFunc("/error/", ErrorHandler).Methods("GET")
 
 	//API endpoints v2
 	app.HandleFunc("/v2.0/posts/{page}/", v2handlers.PostsHandler).Methods("GET")
@@ -53,8 +54,9 @@ func main() {
 	app.HandleFunc("/v2.0/cats/{page}/", v2handlers.CategoriesHandler).Methods("GET")
 	app.HandleFunc("/v2.0/post/{postSlug}/", v2handlers.PostHandler).Methods("GET")
 	app.HandleFunc("/v2.0/post_tags/{postSlug}/", v2handlers.TagsByPostHandler).Methods("GET")
-	app.HandleFunc("/v2.0/popular/{page}/", v2handlers.PopularHandler).Methods("GET")
+	app.HandleFunc("/v2.0/popular/{page}/", v2handlers.PopularPostsHandler).Methods("GET")
 	app.HandleFunc("/v2.0/filled_tags/{cnt}/", v2handlers.FilledTagsHandler).Methods("GET")
+	app.HandleFunc("/v2.0/post_hit/{postSlug}/", v2handlers.UpdatePostHitHandler).Methods("GET")
 
 	//TODOs:
 	//app.HandleFunc("/tweets/{postId}/", TweetsByPostHandler)
@@ -324,4 +326,9 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func ErrorHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusBadRequest)
 }
