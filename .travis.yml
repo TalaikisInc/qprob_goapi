@@ -24,4 +24,5 @@ notifications:
     on_success: never
     on_failure: always
 
-script: travis.sh
+script:
+  - bash travis.sh

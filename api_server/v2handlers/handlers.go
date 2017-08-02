@@ -73,7 +73,10 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
-	p, _ := strconv.Atoi(page)
+	p, err := strconv.Atoi(page)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	cached, isCached := cache.Get("posts_" + page)
 	if isCached == false {
@@ -128,12 +131,82 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(cached)
 }
 
+func PostsHandler2(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
+	p, err := strconv.Atoi(page)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cached, isCached := cache.Get("posts2_" + page)
+	if isCached == false {
+		db := database.Connect()
+		defer db.Close()
+
+		query := fmt.Sprintf(`SELECT
+			posts.title,
+			posts.slug, 
+			posts.url, 
+			posts.summary, 
+			posts.date, 
+			posts.sentiment, 
+			COALESCE(posts.image, ""), 
+			posts.category_id, 
+			cats.slug, 
+			COALESCE(cats.thumbnail, "") 
+			FROM (
+				SELECT title
+					FROM aggregator_post 
+					ORDER BY date DESC 
+					LIMIT %[1]d,%[2]d 
+				) AS limited 
+			JOIN aggregator_post AS posts ON posts.title = limited.title 
+			INNER JOIN aggregator_category AS cats ON limited.category_id = cats.title 
+			ORDER BY posts.title;`, postsPerPage*p, postsPerPage)
+
+		rows, err := db.Query(query)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		posts := make([]models.Post, 0)
+		for rows.Next() {
+			post := models.Post{}
+			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
+				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug,
+				&post.CategoryID.Thumbnail)
+			if err != nil {
+				panic(err)
+			}
+			posts = append(posts, post)
+		}
+		if err = rows.Err(); err != nil {
+			panic(err)
+		}
+
+		j, err := json.Marshal(posts)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		cache.Set("posts2_"+page, j)
+		w.Write(j)
+	}
+	w.Write(cached)
+}
+
 func PostsByCatHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	cat := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
 	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[4])
-	p, _ := strconv.Atoi(page)
+	p, err := strconv.Atoi(page)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	cached, isCached := cache.Get("posts_cat_" + cat + "_" + page)
 	if isCached == false {
@@ -193,7 +266,10 @@ func PostsByTagHandler(w http.ResponseWriter, r *http.Request) {
 
 	tag := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
 	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[4])
-	p, _ := strconv.Atoi(page)
+	p, err := strconv.Atoi(page)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	cached, isCached := cache.Get("posts_tag_" + tag)
 	if isCached == false {
@@ -256,7 +332,10 @@ func PostsByCalendarHandler(w http.ResponseWriter, r *http.Request) {
 	month := url.QueryEscape(strings.Split(r.RequestURI, "/")[4])
 	day := url.QueryEscape(strings.Split(r.RequestURI, "/")[5])
 	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[6])
-	p, _ := strconv.Atoi(page)
+	p, err := strconv.Atoi(page)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	cached, isCached := cache.Get("posts_cal_" + year + "_" + month + "_" + day + "_" + page)
 	if isCached == false {
@@ -315,7 +394,10 @@ func TodayPostsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
-	p, _ := strconv.Atoi(page)
+	p, err := strconv.Atoi(page)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	cached, isCached := cache.Get("today_" + page)
 	if isCached == false {
@@ -372,11 +454,70 @@ func TodayPostsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(cached)
 }
 
+func FilledTagsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	cnt := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
+	c, err := strconv.Atoi(cnt)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cached, isCached := cache.Get("tags_pop")
+	if isCached == false {
+		db := database.Connect()
+		defer db.Close()
+
+		query := fmt.Sprintf(`SELECT 
+			tags.title, 
+			tags.slug, 
+			COUNT(posts.title) AS cnt 
+			FROM aggregator_tags AS tags 
+			INNER JOIN aggregator_post_tags AS post_tags ON tags.title = post_tags.tags_id 
+			INNER JOIN aggregator_post as posts ON post_tags.post_id = posts.title 
+			GROUP BY tags.title 
+			HAVING cnt > %[1]d 
+			ORDER BY tags.title;`, c)
+
+		rows, err := db.Query(query)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		tags := make([]models.Tag, 0)
+		for rows.Next() {
+			tag := models.Tag{}
+
+			err := rows.Scan(&tag.Title, &tag.Slug, &tag.PostCnt)
+			if err != nil {
+				panic(err)
+			}
+			tags = append(tags, tag)
+		}
+		if err = rows.Err(); err != nil {
+			panic(err)
+		}
+
+		j, err := json.Marshal(tags)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		cache.Set("tags_pop", j)
+		w.Write(j)
+	}
+	w.Write(cached)
+}
+
 func TagsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
-	p, _ := strconv.Atoi(page)
+	p, err := strconv.Atoi(page)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	cached, isCached := cache.Get("tags_" + page)
 	if isCached == false {
@@ -429,7 +570,10 @@ func CategoriesHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
-	p, _ := strconv.Atoi(page)
+	p, err := strconv.Atoi(page)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	cached, isCached := cache.Get("cats_" + page)
 	if isCached == false {
@@ -530,6 +674,56 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 
 		cache.Set("post_"+postSlug, j)
 		w.Write(j)
+	}
+	w.Write(cached)
+}
+
+func PopularHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	title := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
+
+	cached, isCached := cache.Get("popular_")
+	if isCached == false {
+		db := database.Connect()
+		defer db.Close()
+
+		query := fmt.Sprintf(`SELECT  
+			tags.title, 
+			tags.slug 
+			FROM aggregator_tags AS tags 
+			INNER JOIN aggregator_post_tags AS post_tags ON tags.title = post_tags.tags_id 
+			INNER JOIN aggregator_post as posts ON post_tags.post_id = posts.title
+			WHERE posts.slug='%[1]s';`, title)
+
+		rows, err := db.Query(query)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		tags := make([]models.Tag, 0)
+		for rows.Next() {
+			tag := models.Tag{}
+
+			err := rows.Scan(&tag.Title, &tag.Slug)
+			if err != nil {
+				panic(err)
+			}
+			tags = append(tags, tag)
+		}
+		if err = rows.Err(); err != nil {
+			panic(err)
+		}
+
+		j, err := json.Marshal(tags)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		cache.Set("popular_", j)
+		w.Write(j)
+
 	}
 	w.Write(cached)
 }

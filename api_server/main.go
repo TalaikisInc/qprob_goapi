@@ -53,6 +53,8 @@ func main() {
 	app.HandleFunc("/v2.0/cats/{page}/", v2handlers.CategoriesHandler)
 	app.HandleFunc("/v2.0/post/{postSlug}/", v2handlers.PostHandler)
 	app.HandleFunc("/v2.0/post_tags/{postSlug}/", v2handlers.TagsByPostHandler)
+	app.HandleFunc("/v2.0/popular/{page}/", v2handlers.PopularHandler)
+	app.HandleFunc("/v2.0/filled_tags/{cnt}/", v2handlers.FilledTagsHandler)
 
 	//TODOs:
 	//app.HandleFunc("/tweets/{postId}/", TweetsByPostHandler)
