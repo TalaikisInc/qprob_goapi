@@ -1,7 +1,0 @@
-description "API Upstart"
-start on runlevel [2345]
-stop on runlevel [!2345]
-
-respawn
-
-exec /usr/bin/sudo -u www-data /home/PROJECT/api_server/api.sh >> /home/PROJECT/logs/api.log 2>&1
