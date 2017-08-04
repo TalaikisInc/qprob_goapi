@@ -41,7 +41,7 @@ func TagsByPostHandler(w http.ResponseWriter, r *http.Request) {
 
 		rows, err := db.Query(query)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 		defer rows.Close()
 
@@ -51,17 +51,17 @@ func TagsByPostHandler(w http.ResponseWriter, r *http.Request) {
 
 			err := rows.Scan(&tag.Title, &tag.Slug)
 			if err != nil {
-				w.Write([]byte(`{"status": 400}`))
+				return
 			}
 			tags = append(tags, tag)
 		}
 		if err = rows.Err(); err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		j, err := json.Marshal(tags)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		cache.Set("post_tags_"+title, j)
@@ -96,7 +96,10 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 			posts.category_id, 
 			cats.slug, 
 			COALESCE(cats.thumbnail, ""), 
-			posts.hits 
+			posts.hits, 
+			(SELECT 
+				COUNT(*) 
+				FROM aggregator_post) 
 			FROM aggregator_post as posts
 			INNER JOIN aggregator_category AS cats ON posts.category_id = cats.title 
 			ORDER BY posts.date DESC 
@@ -104,7 +107,7 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 
 		rows, err := db.Query(query)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 		defer rows.Close()
 
@@ -113,19 +116,19 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
 				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug,
-				&post.CategoryID.Thumbnail, &post.Hits)
+				&post.CategoryID.Thumbnail, &post.Hits, &post.TotalPosts)
 			if err != nil {
-				w.Write([]byte(`{"status": 400}`))
+				return
 			}
 			posts = append(posts, post)
 		}
 		if err = rows.Err(); err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		j, err := json.Marshal(posts)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		cache.Set("posts_"+page, j)
@@ -134,6 +137,7 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(cached)
 }
 
+// experimental benchmark improvement, test needs disabling the json cache and MySQL cache
 func PostsHandler2(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -172,7 +176,7 @@ func PostsHandler2(w http.ResponseWriter, r *http.Request) {
 
 		rows, err := db.Query(query)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 		defer rows.Close()
 
@@ -183,17 +187,17 @@ func PostsHandler2(w http.ResponseWriter, r *http.Request) {
 				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug,
 				&post.CategoryID.Thumbnail, &post.Hits)
 			if err != nil {
-				w.Write([]byte(`{"status": 400}`))
+				return
 			}
 			posts = append(posts, post)
 		}
 		if err = rows.Err(); err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		j, err := json.Marshal(posts)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		cache.Set("posts2_"+page, j)
@@ -231,7 +235,12 @@ func PostsByCatHandler(w http.ResponseWriter, r *http.Request) {
 			posts.category_id, 
 			cats.slug, 
 			COALESCE(cats.thumbnail, ""), 
-			posts.hits 
+			posts.hits, 
+			(SELECT 
+				COUNT(*) 
+				FROM aggregator_post AS posts 
+				INNER JOIN aggregator_category AS cats ON posts.category_id = cats.title 
+				WHERE cats.slug='%[1]s') 
 			FROM aggregator_post AS posts 
 			INNER JOIN aggregator_category AS cats ON posts.category_id = cats.title 
 			WHERE cats.slug='%[1]s' 
@@ -239,7 +248,7 @@ func PostsByCatHandler(w http.ResponseWriter, r *http.Request) {
 			LIMIT %[2]d,%[3]d;`, cat, postsPerPage*p, postsPerPage)
 		rows, err := db.Query(query)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 		defer rows.Close()
 
@@ -248,19 +257,19 @@ func PostsByCatHandler(w http.ResponseWriter, r *http.Request) {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
 				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug,
-				&post.CategoryID.Thumbnail, &post.Hits)
+				&post.CategoryID.Thumbnail, &post.Hits, &post.Hits)
 			if err != nil {
-				w.Write([]byte(`{"status": 400}`))
+				return
 			}
 			posts = append(posts, post)
 		}
 		if err = rows.Err(); err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		j, err := json.Marshal(posts)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		cache.Set("posts_cat_"+cat+"_"+page, j)
@@ -297,7 +306,14 @@ func PostsByTagHandler(w http.ResponseWriter, r *http.Request) {
 			COALESCE(posts.image, ""), 
 			posts.category_id, cats.slug, 
 			COALESCE(cats.thumbnail, ""), 
-			posts.hits 
+			posts.hits, 
+			(SELECT 
+				COUNT(*) 
+				FROM aggregator_post AS posts 
+				INNER JOIN aggregator_category AS cats ON posts.category_id = cats.title 
+				INNER JOIN aggregator_post_tags AS post_tags ON post_tags.post_id = posts.title 
+				INNER JOIN aggregator_tags AS tags ON post_tags.tags_id = tags.title 
+				WHERE tags.slug='%[1]s') 
 			FROM aggregator_post AS posts 
 			INNER JOIN aggregator_category AS cats ON posts.category_id = cats.title 
 			INNER JOIN aggregator_post_tags AS post_tags ON post_tags.post_id = posts.title 
@@ -307,7 +323,7 @@ func PostsByTagHandler(w http.ResponseWriter, r *http.Request) {
 			LIMIT %[2]d,%[3]d;`, tag, postsPerPage*p, postsPerPage)
 		rows, err := db.Query(query)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 		defer rows.Close()
 
@@ -316,19 +332,19 @@ func PostsByTagHandler(w http.ResponseWriter, r *http.Request) {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
 				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug,
-				&post.CategoryID.Thumbnail, &post.Hits)
+				&post.CategoryID.Thumbnail, &post.Hits, &post.TotalPosts)
 			if err != nil {
-				w.Write([]byte(`{"status": 400}`))
+				return
 			}
 			posts = append(posts, post)
 		}
 		if err = rows.Err(); err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		j, err := json.Marshal(posts)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		cache.Set("posts_tag_"+tag+"_"+page, j)
@@ -367,7 +383,12 @@ func PostsByCalendarHandler(w http.ResponseWriter, r *http.Request) {
 			COALESCE(posts.image, ""), 
 			posts.category_id, cats.slug, 
 			COALESCE(cats.thumbnail, ""), 
-			posts.hits 
+			posts.hits, 
+			(SELECT 
+				COUNT(*) 
+				FROM FROM aggregator_post AS posts
+				INNER JOIN aggregator_category AS cats ON posts.category_id = cats.title 
+				WHERE posts.date >= '%[1]s-%[2]s-%[3]s' AND posts.date < '%[1]s-%[2]s-%[3]s' + INTERVAL 1 DAY) 
 			FROM aggregator_post AS posts 
 			INNER JOIN aggregator_category AS cats ON posts.category_id = cats.title 
 			WHERE posts.date >= '%[1]s-%[2]s-%[3]s' AND posts.date < '%[1]s-%[2]s-%[3]s' + INTERVAL 1 DAY
@@ -376,7 +397,7 @@ func PostsByCalendarHandler(w http.ResponseWriter, r *http.Request) {
 
 		rows, err := db.Query(query)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 		defer rows.Close()
 
@@ -385,19 +406,19 @@ func PostsByCalendarHandler(w http.ResponseWriter, r *http.Request) {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
 				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug,
-				&post.CategoryID.Thumbnail, &post.Hits)
+				&post.CategoryID.Thumbnail, &post.Hits, &post.TotalPosts)
 			if err != nil {
-				w.Write([]byte(`{"status": 400}`))
+				return
 			}
 			posts = append(posts, post)
 		}
 		if err = rows.Err(); err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		j, err := json.Marshal(posts)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		cache.Set("posts_cal_"+year+"_"+month+"_"+day+"_"+page, j)
@@ -433,15 +454,21 @@ func TodayPostsHandler(w http.ResponseWriter, r *http.Request) {
 			posts.category_id, 
 			cats.slug, 
 			COALESCE(cats.thumbnail, ""), 
-			posts.hits 
+			posts.hits, 
+			(SELECT 
+				COUNT(*) 
+				FROM aggregator_post as posts
+				INNER JOIN aggregator_category as cats ON posts.category_id = cats.title 
+				WHERE date > '%[1]s')
 			FROM aggregator_post as posts 
 			INNER JOIN aggregator_category as cats ON posts.category_id = cats.title 
-			WHERE date > '%[1]s' ORDER BY date DESC 
+			WHERE date > '%[1]s' 
+			ORDER BY date DESC 
 			LIMIT %[2]d,%[3]d;`, dateBack, postsPerPage*p, postsPerPage)
 
 		rows, err := db.Query(query)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 		defer rows.Close()
 
@@ -450,19 +477,19 @@ func TodayPostsHandler(w http.ResponseWriter, r *http.Request) {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
 				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug,
-				&post.CategoryID.Thumbnail, &post.Hits)
+				&post.CategoryID.Thumbnail, &post.Hits, &post.TotalPosts)
 			if err != nil {
-				w.Write([]byte(`{"status": 400}`))
+				return
 			}
 			posts = append(posts, post)
 		}
 		if err = rows.Err(); err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		j, err := json.Marshal(posts)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		cache.Set("today_"+page, j)
@@ -476,6 +503,11 @@ func FilledTagsHandler(w http.ResponseWriter, r *http.Request) {
 
 	cnt := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
 	c, err := strconv.Atoi(cnt)
+	if err != nil {
+		return
+	}
+	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[4])
+	p, err := strconv.Atoi(page)
 	if err != nil {
 		return
 	}
@@ -494,11 +526,12 @@ func FilledTagsHandler(w http.ResponseWriter, r *http.Request) {
 			INNER JOIN aggregator_post as posts ON post_tags.post_id = posts.title 
 			GROUP BY tags.title 
 			HAVING cnt > %[1]d 
-			ORDER BY tags.title;`, c)
+			ORDER BY tags.title
+			LIMIT %[2]d, %[3]d;`, c, catsPerPage*p, catsPerPage)
 
 		rows, err := db.Query(query)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 		defer rows.Close()
 
@@ -508,17 +541,17 @@ func FilledTagsHandler(w http.ResponseWriter, r *http.Request) {
 
 			err := rows.Scan(&tag.Title, &tag.Slug, &tag.PostCnt)
 			if err != nil {
-				w.Write([]byte(`{"status": 400}`))
+				return
 			}
 			tags = append(tags, tag)
 		}
 		if err = rows.Err(); err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		j, err := json.Marshal(tags)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		cache.Set("tags_pop_"+cnt, j)
@@ -544,7 +577,7 @@ func TagsHandler(w http.ResponseWriter, r *http.Request) {
 		query := fmt.Sprintf(`SELECT 
 			tags.title, 
 			tags.slug, 
-			count(posts.title) AS cnt 
+			COUNT(posts.title) AS cnt 
 			FROM aggregator_tags AS tags 
 			INNER JOIN aggregator_post_tags AS post_tags ON tags.title = post_tags.tags_id 
 			INNER JOIN aggregator_post as posts ON post_tags.post_id = posts.title 
@@ -554,7 +587,7 @@ func TagsHandler(w http.ResponseWriter, r *http.Request) {
 
 		rows, err := db.Query(query)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 		defer rows.Close()
 
@@ -564,17 +597,17 @@ func TagsHandler(w http.ResponseWriter, r *http.Request) {
 
 			err := rows.Scan(&tag.Title, &tag.Slug, &tag.PostCnt)
 			if err != nil {
-				w.Write([]byte(`{"status": 400}`))
+				return
 			}
 			tags = append(tags, tag)
 		}
 		if err = rows.Err(); err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		j, err := json.Marshal(tags)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		cache.Set("tags_"+page, j)
@@ -601,7 +634,10 @@ func CategoriesHandler(w http.ResponseWriter, r *http.Request) {
 			cats.title, 
 			cats.slug, 
 			COALESCE(cats.thumbnail, ""), 
-			count(posts.title) AS cnt 
+			COUNT(posts.title) AS cnt, 
+			(SELECT 
+				COUNT(*) 
+				FROM aggregator_category) 
 			FROM aggregator_category AS cats 
 			INNER JOIN aggregator_post AS posts ON posts.category_id = cats.title 
 			GROUP BY cats.title 
@@ -609,7 +645,7 @@ func CategoriesHandler(w http.ResponseWriter, r *http.Request) {
 
 		rows, err := db.Query(query)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 		defer rows.Close()
 
@@ -618,20 +654,20 @@ func CategoriesHandler(w http.ResponseWriter, r *http.Request) {
 			category := models.Category{}
 
 			err := rows.Scan(&category.Title, &category.Slug, &category.Thumbnail,
-				&category.PostCnt)
+				&category.PostCnt, &category.TotalCats)
 			if err != nil {
-				w.Write([]byte(`{"status": 400}`))
+				return
 			}
 
 			categories = append(categories, category)
 		}
 		if err = rows.Err(); err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		j, err := json.Marshal(categories)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		cache.Set("cats_"+page, j)
@@ -670,9 +706,22 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 			WHERE posts.slug='%s';`, postSlug)
 		rows, err := db.Query(query)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 		defer rows.Close()
+
+		query = fmt.Sprintf(`UPDATE aggregator_post 
+			SET hits = hits + 1 
+			WHERE slug='%[1]s';`, postSlug)
+
+		r, err := db.Exec(query)
+		if err != nil {
+			return
+		}
+		count, err := r.RowsAffected()
+		if err != nil || count != 1 {
+			return
+		}
 
 		posts := make([]models.Post, 0)
 		for rows.Next() {
@@ -681,17 +730,17 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 				&post.Date, &post.Sentiment, &post.Image, &post.CategoryID.Title,
 				&post.CategoryID.Slug, &post.CategoryID.Thumbnail, &post.Hits)
 			if err != nil {
-				w.Write([]byte(`{"status": 400}`))
+				return
 			}
 			posts = append(posts, post)
 		}
 		if err = rows.Err(); err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		j, err := json.Marshal(posts)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		cache.Set("post_"+postSlug, j)
@@ -702,6 +751,17 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 
 func PopularPostsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+
+	hits := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
+	h, err := strconv.Atoi(hits)
+	if err != nil {
+		return
+	}
+	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[4])
+	p, err := strconv.Atoi(page)
+	if err != nil {
+		return
+	}
 
 	cached, isCached := cache.Get("popular_")
 	if isCached == false {
@@ -719,14 +779,20 @@ func PopularPostsHandler(w http.ResponseWriter, r *http.Request) {
 			posts.category_id, 
 			cats.slug, 
 			COALESCE(cats.thumbnail, ""), 
-			posts.hits 
+			posts.hits, 
+			(SELECT 
+				COUNT(*) 
+				FROM aggregator_post as posts
+				INNER JOIN aggregator_category as cats ON posts.category_id = cats.title
+				WHERE hits > %[1]d) 
 			FROM aggregator_post as posts 
 			INNER JOIN aggregator_category as cats ON posts.category_id = cats.title
-			WHERE hits > AVERAGE(hits);`)
+			WHERE hits > %[1]d
+			LIMIT %[2]d,%[3]d;`, h, postsPerPage*p, postsPerPage)
 
 		rows, err := db.Query(query)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 		defer rows.Close()
 
@@ -735,19 +801,19 @@ func PopularPostsHandler(w http.ResponseWriter, r *http.Request) {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
 				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug,
-				&post.CategoryID.Thumbnail, &post.Hits)
+				&post.CategoryID.Thumbnail, &post.Hits, &post.TotalPosts)
 			if err != nil {
-				w.Write([]byte(`{"status": 400}`))
+				return
 			}
 			posts = append(posts, post)
 		}
 		if err = rows.Err(); err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		j, err := json.Marshal(posts)
 		if err != nil {
-			w.Write([]byte(`{"status": 400}`))
+			return
 		}
 
 		cache.Set("popular_", j)
@@ -774,7 +840,7 @@ func UpdatePostHitHandler(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := db.Exec(query)
 	if err != nil {
-		w.Write([]byte(`{"status": 400}`))
+		return
 	}
 	count, err := rows.RowsAffected()
 	if err != nil || count != 1 {
@@ -783,4 +849,55 @@ func UpdatePostHitHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"status": 200}`))
 	}
 
+}
+
+func MetaHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	cached, isCached := cache.Get("meta_")
+	if isCached == false {
+		db := database.Connect()
+		defer db.Close()
+
+		query := `SELECT 
+			(SELECT 
+				COUNT(*) 
+				FROM aggregator_category) AS cats, 
+			(SELECT 
+				COUNT(*) 
+				FROM aggregator_post) AS posts, 
+			(SELECT 
+				COUNT(*) 
+				FROM aggregator_tags) AS tags;`
+
+		rows, err := db.Query(query)
+		if err != nil {
+			return
+		}
+		defer rows.Close()
+
+		meta := make([]models.Meta, 0)
+		for rows.Next() {
+			m := models.Meta{}
+
+			err := rows.Scan(&m.CatTotal, &m.PostTotal, &m.TagTotal)
+			if err != nil {
+				return
+			}
+
+			meta = append(meta, m)
+		}
+		if err = rows.Err(); err != nil {
+			return
+		}
+
+		j, err := json.Marshal(meta)
+		if err != nil {
+			return
+		}
+
+		cache.Set("meta_", j)
+		w.Write(j)
+	}
+	w.Write(cached)
 }

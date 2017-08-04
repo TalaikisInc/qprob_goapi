@@ -16,6 +16,7 @@ type Post struct {
 	Image      string
 	CategoryID Category
 	Hits       int
+	TotalPosts int
 }
 
 type PostJSON struct {
@@ -28,6 +29,7 @@ type PostJSON struct {
 	Image      string   `json:"image"`
 	CategoryID Category `json:"category_id, omitempty"`
 	Hits       int      `json:"hits"`
+	TotalPosts int      `json:"total_posts"`
 }
 
 func (p *Post) MarshalJSON() ([]byte, error) {
@@ -41,6 +43,7 @@ func (p *Post) MarshalJSON() ([]byte, error) {
 		p.Image,
 		p.CategoryID,
 		p.Hits,
+		p.TotalPosts,
 	})
 }
 
@@ -60,6 +63,7 @@ func (p *Post) UnmarshalJSON(b []byte) error {
 	p.Image = temp.Image
 	p.CategoryID = temp.CategoryID
 	p.Hits = temp.Hits
+	p.TotalPosts = temp.TotalPosts
 
 	return nil
 }
