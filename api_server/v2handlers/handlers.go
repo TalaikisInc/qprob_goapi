@@ -512,7 +512,7 @@ func FilledTagsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cached, isCached := cache.Get("tags_pop_" + cnt)
+	cached, isCached := cache.Get("tags_pop_" + cnt + "_" + page)
 	if isCached == false {
 		db := database.Connect()
 		defer db.Close()
@@ -554,7 +554,57 @@ func FilledTagsHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		cache.Set("tags_pop_"+cnt, j)
+		cache.Set("tags_pop_"+cnt+"_"+page, j)
+		w.Write(j)
+	}
+	w.Write(cached)
+}
+
+func TopTagsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	cached, isCached := cache.Get("top_tags_")
+	if isCached == false {
+		db := database.Connect()
+		defer db.Close()
+
+		query := `SELECT 
+			tags.title, 
+			tags.slug, 
+			COUNT(posts.title) AS cnt 
+			FROM aggregator_tags AS tags 
+			INNER JOIN aggregator_post_tags AS post_tags ON tags.title = post_tags.tags_id 
+			INNER JOIN aggregator_post as posts ON post_tags.post_id = posts.title 
+			GROUP BY tags.title 
+			ORDER BY COUNT(*) DESC 
+			LIMIT 30;`
+
+		rows, err := db.Query(query)
+		if err != nil {
+			return
+		}
+		defer rows.Close()
+
+		tags := make([]models.Tag, 0)
+		for rows.Next() {
+			tag := models.Tag{}
+
+			err := rows.Scan(&tag.Title, &tag.Slug, &tag.PostCnt)
+			if err != nil {
+				return
+			}
+			tags = append(tags, tag)
+		}
+		if err = rows.Err(); err != nil {
+			return
+		}
+
+		j, err := json.Marshal(tags)
+		if err != nil {
+			return
+		}
+
+		cache.Set("top_tags_", j)
 		w.Write(j)
 	}
 	w.Write(cached)
