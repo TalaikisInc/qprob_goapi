@@ -3,6 +3,7 @@ package v2handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -661,6 +662,62 @@ func TagsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		cache.Set("tags_"+page, j)
+		w.Write(j)
+	}
+	w.Write(cached)
+}
+
+func TopCategoriesHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	cached, isCached := cache.Get("top_cats_")
+	if isCached == false {
+		db := database.Connect()
+		defer db.Close()
+
+		query := `SELECT 
+			cats.title, 
+			cats.slug, 
+			COALESCE(cats.thumbnail, ""), 
+			COUNT(posts.title) AS cnt 
+			FROM aggregator_category AS cats 
+			INNER JOIN aggregator_post AS posts ON posts.category_id = cats.title 
+			GROUP BY cats.title 
+			ORDER BY COUNT(*) DESC 
+			LIMIT 30;`
+
+		rows, err := db.Query(query)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+		defer rows.Close()
+
+		categories := make([]models.Category, 0)
+		for rows.Next() {
+			category := models.Category{}
+
+			err := rows.Scan(&category.Title, &category.Slug, &category.Thumbnail,
+				&category.PostCnt)
+			if err != nil {
+				log.Fatal(err)
+				return
+			}
+
+			categories = append(categories, category)
+		}
+		if err = rows.Err(); err != nil {
+			log.Fatal(err)
+			return
+		}
+
+		j, err := json.Marshal(categories)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+
+		cache.Set("top_cats_", j)
 		w.Write(j)
 	}
 	w.Write(cached)
