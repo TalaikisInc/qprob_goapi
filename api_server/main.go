@@ -52,6 +52,7 @@ func main() {
 	app.HandleFunc("/v2.0/cal/{year}/{month}/{day}/{page}/", v2handlers.PostsByCalendarHandler).Methods("GET")
 	app.HandleFunc("/v2.0/tags/{page}/", v2handlers.TagsHandler).Methods("GET")
 	app.HandleFunc("/v2.0/cats/{page}/", v2handlers.CategoriesHandler).Methods("GET")
+	app.HandleFunc("/v2.0/all_cats/", v2handlers.AllCategoriesHandler).Methods("GET")
 	app.HandleFunc("/v2.0/post/{postSlug}/", v2handlers.PostHandler).Methods("GET")
 	app.HandleFunc("/v2.0/post_tags/{postSlug}/", v2handlers.TagsByPostHandler).Methods("GET")
 	app.HandleFunc("/v2.0/popular/{hits}/{page}/", v2handlers.PopularPostsHandler).Methods("GET")

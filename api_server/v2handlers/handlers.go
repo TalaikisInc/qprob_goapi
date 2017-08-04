@@ -676,6 +676,56 @@ func CategoriesHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(cached)
 }
 
+func AllCategoriesHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	cached, isCached := cache.Get("allcats_")
+	if isCached == false {
+		db := database.Connect()
+		defer db.Close()
+
+		query := `SELECT 
+			cats.title, 
+			cats.slug, 
+			COALESCE(cats.thumbnail, ""), 
+			COUNT(posts.title) AS cnt 
+			FROM aggregator_category AS cats 
+			INNER JOIN aggregator_post AS posts ON posts.category_id = cats.title 
+			GROUP BY cats.title;`
+
+		rows, err := db.Query(query)
+		if err != nil {
+			return
+		}
+		defer rows.Close()
+
+		categories := make([]models.Category, 0)
+		for rows.Next() {
+			category := models.Category{}
+
+			err := rows.Scan(&category.Title, &category.Slug, &category.Thumbnail,
+				&category.PostCnt)
+			if err != nil {
+				return
+			}
+
+			categories = append(categories, category)
+		}
+		if err = rows.Err(); err != nil {
+			return
+		}
+
+		j, err := json.Marshal(categories)
+		if err != nil {
+			return
+		}
+
+		cache.Set("allcats_", j)
+		w.Write(j)
+	}
+	w.Write(cached)
+}
+
 func PostHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -763,7 +813,7 @@ func PopularPostsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cached, isCached := cache.Get("popular_")
+	cached, isCached := cache.Get("popular_" + hits + "_" + page)
 	if isCached == false {
 		db := database.Connect()
 		defer db.Close()
@@ -816,7 +866,7 @@ func PopularPostsHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		cache.Set("popular_", j)
+		cache.Set("popular_"+hits+"_"+page, j)
 		w.Write(j)
 
 	}
