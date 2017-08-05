@@ -983,7 +983,7 @@ func PopularPostsHandler(w http.ResponseWriter, r *http.Request) {
 func PostsByPopularityHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[4])
+	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
 	p, err := strconv.Atoi(page)
 	if err != nil {
 		return
@@ -1024,6 +1024,7 @@ func PostsByPopularityHandler(w http.ResponseWriter, r *http.Request) {
 				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug,
 				&post.CategoryID.Thumbnail, &post.Hits)
 			if err != nil {
+				log.Fatal(err)
 				return
 			}
 			posts = append(posts, post)
@@ -1034,6 +1035,7 @@ func PostsByPopularityHandler(w http.ResponseWriter, r *http.Request) {
 
 		j, err := json.Marshal(posts)
 		if err != nil {
+			log.Fatal(err)
 			return
 		}
 
