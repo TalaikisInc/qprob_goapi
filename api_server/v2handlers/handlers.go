@@ -980,6 +980,64 @@ func PopularPostsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(cached)
 }
 
+func MostPopularPostsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	cached, isCached := cache.Get("most_popular_")
+	if isCached == false {
+		db := database.Connect()
+		defer db.Close()
+
+		query := `SELECT 
+			posts.title, 
+			posts.slug, 
+			posts.url, 
+			posts.summary, 
+			posts.date, 
+			posts.sentiment, 
+			COALESCE(posts.image, ""), 
+			posts.category_id, 
+			cats.slug, 
+			COALESCE(cats.thumbnail, ""), 
+			posts.hits 
+			FROM aggregator_post as posts 
+			INNER JOIN aggregator_category as cats ON posts.category_id = cats.title
+			ORDER BY hits DESC 
+			LIMIT 15;`
+
+		rows, err := db.Query(query)
+		if err != nil {
+			return
+		}
+		defer rows.Close()
+
+		posts := make([]models.Post, 0)
+		for rows.Next() {
+			post := models.Post{}
+			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
+				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug,
+				&post.CategoryID.Thumbnail, &post.Hits)
+			if err != nil {
+				return
+			}
+			posts = append(posts, post)
+		}
+		if err = rows.Err(); err != nil {
+			return
+		}
+
+		j, err := json.Marshal(posts)
+		if err != nil {
+			return
+		}
+
+		cache.Set("most_popular_", j)
+		w.Write(j)
+
+	}
+	w.Write(cached)
+}
+
 func UpdatePostHitHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 

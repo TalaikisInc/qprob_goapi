@@ -57,6 +57,7 @@ func main() {
 	app.HandleFunc("/v2.0/post/{postSlug}/", v2handlers.PostHandler).Methods("GET")
 	app.HandleFunc("/v2.0/post_tags/{postSlug}/", v2handlers.TagsByPostHandler).Methods("GET")
 	app.HandleFunc("/v2.0/popular/{hits}/{page}/", v2handlers.PopularPostsHandler).Methods("GET")
+	app.HandleFunc("/v2.0/most_popular/", v2handlers.MostPopularPostsHandler).Methods("GET")
 	app.HandleFunc("/v2.0/filled_tags/{cnt}/{page}/", v2handlers.FilledTagsHandler).Methods("GET")
 	app.HandleFunc("/v2.0/top_tags/", v2handlers.TopTagsHandler).Methods("GET")
 	app.HandleFunc("/v2.0/post_hit/{postSlug}/", v2handlers.UpdatePostHitHandler).Methods("GET")
