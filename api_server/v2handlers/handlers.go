@@ -3,7 +3,6 @@ package v2handlers
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -688,7 +687,6 @@ func TopCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 
 		rows, err := db.Query(query)
 		if err != nil {
-			log.Fatal(err)
 			return
 		}
 		defer rows.Close()
@@ -700,20 +698,17 @@ func TopCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 			err := rows.Scan(&category.Title, &category.Slug, &category.Thumbnail,
 				&category.PostCnt)
 			if err != nil {
-				log.Fatal(err)
 				return
 			}
 
 			categories = append(categories, category)
 		}
 		if err = rows.Err(); err != nil {
-			log.Fatal(err)
 			return
 		}
 
 		j, err := json.Marshal(categories)
 		if err != nil {
-			log.Fatal(err)
 			return
 		}
 
@@ -1024,7 +1019,6 @@ func PostsByPopularityHandler(w http.ResponseWriter, r *http.Request) {
 				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug,
 				&post.CategoryID.Thumbnail, &post.Hits)
 			if err != nil {
-				log.Fatal(err)
 				return
 			}
 			posts = append(posts, post)
@@ -1035,7 +1029,6 @@ func PostsByPopularityHandler(w http.ResponseWriter, r *http.Request) {
 
 		j, err := json.Marshal(posts)
 		if err != nil {
-			log.Fatal(err)
 			return
 		}
 
@@ -1068,7 +1061,8 @@ func MostPopularPostsHandler(w http.ResponseWriter, r *http.Request) {
 			posts.hits 
 			FROM aggregator_post as posts 
 			INNER JOIN aggregator_category as cats ON posts.category_id = cats.title
-			WHERE MONTH(posts.date) = MONTH(CURRENT_DATE()) 
+			WHERE YEAR(posts.date) = YEAR(CURRENT_DATE()) 
+			AND MONTH(posts.date) = MONTH(CURRENT_DATE()) 
 			ORDER BY hits DESC 
 			LIMIT 15;`
 
