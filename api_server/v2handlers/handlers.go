@@ -683,7 +683,7 @@ func TopCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 			INNER JOIN aggregator_post AS posts ON posts.category_id = cats.title 
 			GROUP BY cats.title 
 			ORDER BY COUNT(*) DESC 
-			LIMIT 30;`
+			LIMIT 21;`
 
 		rows, err := db.Query(query)
 		if err != nil {
@@ -980,7 +980,7 @@ func PostsByPopularityHandler(w http.ResponseWriter, r *http.Request) {
 
 	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
 	p, err := strconv.Atoi(page)
-	if err != nil {
+	if err != nil || p > 20 {
 		return
 	}
 
