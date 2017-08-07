@@ -3,6 +3,7 @@ package v2handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -1174,6 +1175,56 @@ func MetaHandler(w http.ResponseWriter, r *http.Request) {
 
 		cache.Set("meta_", j)
 		w.Write(j)
+	}
+	w.Write(cached)
+}
+
+func SentimentHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	cached, isCached := cache.Get("sentiment_")
+	if isCached == false {
+		db := database.Connect()
+		defer db.Close()
+
+		query := `SELECT 
+			date, 
+			COALESCE(sentiment, 0.0) 
+			FROM aggregator_post 
+			WHERE date > DATE_FORMAT(DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH), '%Y-%m-%d') 
+			ORDER BY date DESC;`
+
+		rows, err := db.Query(query)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+		defer rows.Close()
+
+		sents := make([]models.Sentiment, 0)
+		for rows.Next() {
+			s := models.Sentiment{}
+			err := rows.Scan(&s.Date, &s.Sentiment)
+			if err != nil {
+				log.Fatal(err)
+				return
+			}
+			sents = append(sents, s)
+		}
+		if err = rows.Err(); err != nil {
+			log.Fatal(err)
+			return
+		}
+
+		j, err := json.Marshal(sents)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+
+		cache.Set("sentiment_", j)
+		w.Write(j)
+
 	}
 	w.Write(cached)
 }

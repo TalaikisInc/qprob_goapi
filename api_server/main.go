@@ -63,6 +63,7 @@ func main() {
 	app.HandleFunc("/v2.0/top_tags/", v2handlers.TopTagsHandler).Methods("GET")
 	app.HandleFunc("/v2.0/post_hit/{postSlug}/", v2handlers.UpdatePostHitHandler).Methods("GET")
 	app.HandleFunc("/v2.0/meta/", v2handlers.MetaHandler).Methods("GET")
+	app.HandleFunc("/v2.0/sentiment/", v2handlers.SentimentHandler).Methods("GET")
 
 	//TODOs:
 	//app.HandleFunc("/tweets/{postId}/", TweetsByPostHandler)
