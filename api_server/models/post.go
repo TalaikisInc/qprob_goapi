@@ -11,12 +11,14 @@ type Post struct {
 	Slug       string
 	URL        string
 	Summary    string
+	Content    string
 	Date       string
 	Sentiment  float32
 	Image      string
 	CategoryID Category
 	Hits       int
 	TotalPosts int
+	Status     int
 }
 
 type PostJSON struct {
@@ -24,12 +26,14 @@ type PostJSON struct {
 	Slug       string   `json:"slug, omitempty"`
 	URL        string   `json:"url, omitempty"`
 	Summary    string   `json:"summary"`
+	Content    string   `json:"content"`
 	Date       string   `json:"date, omitempty"`
 	Sentiment  float32  `json:"sentiment"`
 	Image      string   `json:"image"`
 	CategoryID Category `json:"category_id, omitempty"`
 	Hits       int      `json:"hits"`
 	TotalPosts int      `json:"total_posts"`
+	Status     int      `json:"status"`
 }
 
 func (p *Post) MarshalJSON() ([]byte, error) {
@@ -38,12 +42,14 @@ func (p *Post) MarshalJSON() ([]byte, error) {
 		p.Slug,
 		p.URL,
 		strip.StripTags(p.Summary),
+		p.Content,
 		p.Date,
 		p.Sentiment,
 		p.Image,
 		p.CategoryID,
 		p.Hits,
 		p.TotalPosts,
+		p.Status,
 	})
 }
 
@@ -58,12 +64,14 @@ func (p *Post) UnmarshalJSON(b []byte) error {
 	p.Slug = temp.Slug
 	p.URL = temp.URL
 	p.Summary = temp.Summary
+	p.Content = temp.Content
 	p.Date = temp.Date
 	p.Sentiment = temp.Sentiment
 	p.Image = temp.Image
 	p.CategoryID = temp.CategoryID
 	p.Hits = temp.Hits
 	p.TotalPosts = temp.TotalPosts
+	p.Status = temp.Status
 
 	return nil
 }

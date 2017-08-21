@@ -67,9 +67,11 @@ func TagsByPostHandler(w http.ResponseWriter, r *http.Request) {
 
 		cache.Set("post_tags_"+title, j)
 		w.Write(j)
+		w.WriteHeader(http.StatusOK)
 
 	}
 	w.Write(cached)
+	w.WriteHeader(http.StatusOK)
 }
 
 func PostsHandler(w http.ResponseWriter, r *http.Request) {
@@ -847,13 +849,18 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 			posts.slug, 
 			posts.url, 
 			posts.summary, 
+			CASE posts.dead 
+				WHEN 0 THEN "" 
+				WHEN 1 THEN posts.content 
+			END AS content, 
 			posts.date, 
 			posts.sentiment, 
 			COALESCE(posts.image, ""), 
 			posts.category_id, 
 			cats.slug, 
 			COALESCE(cats.thumbnail, ""), 
-			posts.hits 
+			posts.hits, 
+			posts.dead 
 			FROM aggregator_post as posts 
 			INNER JOIN aggregator_category as cats ON posts.category_id = cats.title 
 			WHERE posts.slug='%s';`, postSlug)
@@ -880,8 +887,9 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary,
-				&post.Date, &post.Sentiment, &post.Image, &post.CategoryID.Title,
-				&post.CategoryID.Slug, &post.CategoryID.Thumbnail, &post.Hits)
+				&post.Content, &post.Date, &post.Sentiment, &post.Image,
+				&post.CategoryID.Title, &post.CategoryID.Slug, &post.CategoryID.Thumbnail,
+				&post.Hits, &post.Status)
 			if err != nil {
 				return
 			}
