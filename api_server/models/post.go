@@ -15,6 +15,7 @@ type Post struct {
 	Date       string
 	Sentiment  float32
 	Image      string
+	Wordcloud  string
 	CategoryID Category
 	Hits       int
 	TotalPosts int
@@ -30,6 +31,7 @@ type PostJSON struct {
 	Date       string   `json:"date, omitempty"`
 	Sentiment  float32  `json:"sentiment"`
 	Image      string   `json:"image"`
+	Wordcloud  string   `json:"wordcloud"`
 	CategoryID Category `json:"category_id, omitempty"`
 	Hits       int      `json:"hits"`
 	TotalPosts int      `json:"total_posts"`
@@ -46,6 +48,7 @@ func (p *Post) MarshalJSON() ([]byte, error) {
 		p.Date,
 		p.Sentiment,
 		p.Image,
+		p.Wordcloud,
 		p.CategoryID,
 		p.Hits,
 		p.TotalPosts,
@@ -68,6 +71,7 @@ func (p *Post) UnmarshalJSON(b []byte) error {
 	p.Date = temp.Date
 	p.Sentiment = temp.Sentiment
 	p.Image = temp.Image
+	p.Wordcloud = temp.Wordcloud
 	p.CategoryID = temp.CategoryID
 	p.Hits = temp.Hits
 	p.TotalPosts = temp.TotalPosts

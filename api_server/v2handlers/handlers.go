@@ -96,6 +96,7 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 			posts.date, 
 			posts.sentiment, 
 			COALESCE(posts.image, ""), 
+			COALESCE(posts.wordcloud, ""), 
 			posts.category_id, 
 			cats.slug, 
 			COALESCE(cats.thumbnail, ""), 
@@ -118,7 +119,7 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
-				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug,
+				&post.Sentiment, &post.Image, &post.Wordcloud, &post.CategoryID.Title, &post.CategoryID.Slug,
 				&post.CategoryID.Thumbnail, &post.Hits, &post.TotalPosts)
 			if err != nil {
 				return
@@ -235,6 +236,7 @@ func PostsByCatHandler(w http.ResponseWriter, r *http.Request) {
 			posts.date AS dt, 
 			posts.sentiment, 
 			COALESCE(posts.image, ""), 
+			COALESCE(posts.wordcloud, ""), 
 			posts.category_id, 
 			cats.slug, 
 			COALESCE(cats.thumbnail, ""), 
@@ -259,7 +261,7 @@ func PostsByCatHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
-				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug,
+				&post.Sentiment, &post.Image, &post.Wordcloud, &post.CategoryID.Title, &post.CategoryID.Slug,
 				&post.CategoryID.Thumbnail, &post.Hits, &post.Hits)
 			if err != nil {
 				return
@@ -307,6 +309,7 @@ func PostsByTagHandler(w http.ResponseWriter, r *http.Request) {
 			posts.date AS dt, 
 			posts.sentiment, 
 			COALESCE(posts.image, ""), 
+			COALESCE(posts.wordcloud, ""), 
 			posts.category_id, cats.slug, 
 			COALESCE(cats.thumbnail, ""), 
 			posts.hits, 
@@ -334,7 +337,7 @@ func PostsByTagHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
-				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug,
+				&post.Sentiment, &post.Image, &post.Wordcloud, &post.CategoryID.Title, &post.CategoryID.Slug,
 				&post.CategoryID.Thumbnail, &post.Hits, &post.TotalPosts)
 			if err != nil {
 				return
@@ -384,6 +387,7 @@ func PostsByCalendarHandler(w http.ResponseWriter, r *http.Request) {
 			posts.date AS dt, 
 			posts.sentiment, 
 			COALESCE(posts.image, ""), 
+			COALESCE(posts.wordcloud, ""), 
 			posts.category_id, cats.slug, 
 			COALESCE(cats.thumbnail, ""), 
 			posts.hits, 
@@ -408,7 +412,7 @@ func PostsByCalendarHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
-				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug,
+				&post.Sentiment, &post.Image, &post.Wordcloud, &post.CategoryID.Title, &post.CategoryID.Slug,
 				&post.CategoryID.Thumbnail, &post.Hits, &post.TotalPosts)
 			if err != nil {
 				return
@@ -454,6 +458,7 @@ func TodayPostsHandler(w http.ResponseWriter, r *http.Request) {
 			posts.date, 
 			posts.sentiment, 
 			COALESCE(posts.image, ""), 
+			COALESCE(posts.wordcloud, ""), 
 			posts.category_id, 
 			cats.slug, 
 			COALESCE(cats.thumbnail, ""), 
@@ -479,7 +484,7 @@ func TodayPostsHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
-				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug,
+				&post.Sentiment, &post.Image, &post.Wordcloud, &post.CategoryID.Title, &post.CategoryID.Slug,
 				&post.CategoryID.Thumbnail, &post.Hits, &post.TotalPosts)
 			if err != nil {
 				return
@@ -856,6 +861,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 			posts.date, 
 			posts.sentiment, 
 			COALESCE(posts.image, ""), 
+			COALESCE(posts.wordcloud, ""), 
 			posts.category_id, 
 			cats.slug, 
 			COALESCE(cats.thumbnail, ""), 
@@ -887,7 +893,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary,
-				&post.Content, &post.Date, &post.Sentiment, &post.Image,
+				&post.Content, &post.Date, &post.Sentiment, &post.Image, &post.Wordcloud,
 				&post.CategoryID.Title, &post.CategoryID.Slug, &post.CategoryID.Thumbnail,
 				&post.Hits, &post.Status)
 			if err != nil {
@@ -937,6 +943,7 @@ func PopularPostsHandler(w http.ResponseWriter, r *http.Request) {
 			posts.date, 
 			posts.sentiment, 
 			COALESCE(posts.image, ""), 
+			COALESCE(posts.wordcloud, ""), 
 			posts.category_id, 
 			cats.slug, 
 			COALESCE(cats.thumbnail, ""), 
@@ -961,7 +968,7 @@ func PopularPostsHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
-				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug,
+				&post.Sentiment, &post.Image, &post.Wordcloud, &post.CategoryID.Title, &post.CategoryID.Slug,
 				&post.CategoryID.Thumbnail, &post.Hits, &post.TotalPosts)
 			if err != nil {
 				return
@@ -1006,12 +1013,13 @@ func PostsByPopularityHandler(w http.ResponseWriter, r *http.Request) {
 			posts.date, 
 			posts.sentiment, 
 			COALESCE(posts.image, ""), 
+			COALESCE(posts.wordcloud, ""), 
 			posts.category_id, 
 			cats.slug, 
 			COALESCE(cats.thumbnail, ""), 
 			posts.hits 
 			FROM aggregator_post as posts 
-			INNER JOIN aggregator_category as cats ON posts.category_id = cats.title
+			INNER JOIN aggregator_category as cats ON posts.category_id = cats.title 
 			ORDER BY hits DESC 
 			LIMIT %[1]d,%[2]d;`, postsPerPage*p, postsPerPage)
 
@@ -1025,7 +1033,7 @@ func PostsByPopularityHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
-				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug,
+				&post.Sentiment, &post.Image, &post.Wordcloud, &post.CategoryID.Title, &post.CategoryID.Slug,
 				&post.CategoryID.Thumbnail, &post.Hits)
 			if err != nil {
 				return
@@ -1064,6 +1072,7 @@ func MostPopularPostsHandler(w http.ResponseWriter, r *http.Request) {
 			posts.date, 
 			posts.sentiment, 
 			COALESCE(posts.image, ""), 
+			COALESCE(posts.wordcloud, ""), 
 			posts.category_id, 
 			cats.slug, 
 			COALESCE(cats.thumbnail, ""), 
@@ -1085,7 +1094,7 @@ func MostPopularPostsHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
-				&post.Sentiment, &post.Image, &post.CategoryID.Title, &post.CategoryID.Slug,
+				&post.Sentiment, &post.Image, &post.Wordcloud, &post.CategoryID.Title, &post.CategoryID.Slug,
 				&post.CategoryID.Thumbnail, &post.Hits)
 			if err != nil {
 				return
