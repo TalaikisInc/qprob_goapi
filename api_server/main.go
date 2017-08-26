@@ -109,7 +109,7 @@ func RssHandler(w http.ResponseWriter, r *http.Request) {
 		db := database.Connect()
 		defer db.Close()
 
-		dateBack := time.Now().AddDate(0, 0, -200)
+		dateBack := time.Now().AddDate(0, 0, -2)
 
 		query := fmt.Sprintf(`SELECT 
 			posts.title, 
