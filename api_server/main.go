@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"html/template"
 	"log"
@@ -30,10 +31,10 @@ func init() {
 }
 
 func main() {
-	Host := os.Getenv("API_HOST")
+	ApiHost := os.Getenv("API_HOST")
 
 	app := mux.NewRouter()
-	app.Host(Host)
+	app.Host(ApiHost)
 
 	//API endpoints v1
 	app.HandleFunc("/", RedirectHandler).Methods("GET")
@@ -43,6 +44,7 @@ func main() {
 	app.HandleFunc("/today/", TodayHandler).Methods("GET")
 	app.HandleFunc("/cats/", CategoriesHandler).Methods("GET")
 	app.HandleFunc("/error/", ErrorHandler).Methods("GET")
+	app.HandleFunc("/feed/", RssHandler).Methods("GET")
 
 	//API endpoints v2
 	app.HandleFunc("/v2.0/posts/{page}/", v2handlers.PostsHandler).Methods("GET")
@@ -78,13 +80,98 @@ func main() {
 
 	server := &http.Server{
 		Handler:      app,
-		Addr:         Host + ":" + os.Getenv("API_PORT"),
+		Addr:         ApiHost + ":" + os.Getenv("API_PORT"),
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
 
 	log.Fatal(server.ListenAndServe())
 
+}
+
+func RssHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/xml")
+
+	Host := os.Getenv("HOST")
+	domain := "https://" + Host + "/"
+	Author := os.Getenv("SHORT_SITE_NAME")
+	SiteName := os.Getenv("SITE_NAME")
+
+	cached, isCached := cache.Get("rss")
+	if isCached == false {
+		type Item struct {
+			Title   string `xml:"title"`
+			Link    string `xml:"link"`
+			Author  string `xml:"author"`
+			Created string `xml:"date"`
+		}
+
+		db := database.Connect()
+		defer db.Close()
+
+		dateBack := time.Now().AddDate(0, 0, -200)
+
+		query := fmt.Sprintf(`SELECT 
+			posts.title, 
+			CONCAT('%[1]s', posts.slug, '/'), 
+			cats.title, 
+			posts.date 
+			FROM aggregator_post as posts 
+			INNER JOIN aggregator_category as cats ON posts.category_id = cats.title 
+			WHERE date > '%[2]s' 
+			ORDER BY date DESC;`, domain, dateBack)
+		rows, err := db.Query(query)
+		if err != nil {
+			return
+		}
+		defer rows.Close()
+
+		posts := make([]Item, 0)
+		for rows.Next() {
+			post := Item{}
+			err := rows.Scan(&post.Title, &post.Link, &post.Author, &post.Created)
+			if err != nil {
+				return
+			}
+			posts = append(posts, post)
+		}
+		if err = rows.Err(); err != nil {
+			return
+		}
+
+		rss, err := xml.MarshalIndent(posts, "", "    ")
+		if err != nil {
+			return
+		}
+
+		Host := os.Getenv("HOST")
+		Author := os.Getenv("SHORT_SITE_NAME")
+		SiteName := os.Getenv("SITE_NAME")
+
+		uEl := []byte("<channel>" +
+			"<title>" + SiteName + "</title>" +
+			"<author>" + Author + "</author>" +
+			"<link>https://" + Host + "</link>")
+		dEl := []byte("</channel>")
+
+		// FIXME by some reason non-cached version doesn't produce correct xml
+		w.Write(uEl)
+		w.Write([]byte(rss))
+		w.Write(dEl)
+
+		cache.Set("rss", rss)
+
+	}
+
+	uEl := []byte("<channel>" +
+		"<title>" + SiteName + "</title>" +
+		"<author>" + Author + "</author>" +
+		"<link>https://" + Host + "</link>")
+	dEl := []byte("</channel>")
+
+	w.Write(uEl)
+	w.Write(cached)
+	w.Write(dEl)
 }
 
 func PostsHandler(w http.ResponseWriter, r *http.Request) {
