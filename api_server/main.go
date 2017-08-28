@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"./database"
-	"./models"
-	"./v2handlers"
+	"github.com/xenu256/qprob_goapi/api_server/database"
+	"github.com/xenu256/qprob_goapi/api_server/models"
+	"github.com/xenu256/qprob_goapi/api_server/v2handlers"
 
 	"github.com/die-net/lrucache"
 	"github.com/gorilla/mux"

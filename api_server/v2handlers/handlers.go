@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"../database"
-	"../models"
 	"github.com/die-net/lrucache"
+	"github.com/xenu256/qprob_goapi/api_server/database"
+	"github.com/xenu256/qprob_goapi/api_server/models"
 )
 
 var cache = lrucache.New(104857600*3, 10800*2) //300 Mb, 6 hours

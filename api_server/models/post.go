@@ -3,7 +3,7 @@ package models
 import (
 	"encoding/json"
 
-	"../strip"
+	"github.com/xenu256/qprob_goapi/api_server./strip"
 )
 
 type Post struct {
