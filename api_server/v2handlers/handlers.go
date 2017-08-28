@@ -1021,7 +1021,7 @@ func PostsByPopularityHandler(w http.ResponseWriter, r *http.Request) {
 			(SELECT 
 				COUNT(*) 
 				FROM aggregator_post
-				WHERE posts.hits > 10) 
+				WHERE hits > 10) 
 			FROM aggregator_post as posts 
 			INNER JOIN aggregator_category as cats ON posts.category_id = cats.title 
 			WHERE posts.hits > 10 
