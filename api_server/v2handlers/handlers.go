@@ -232,7 +232,10 @@ func PostsByCatHandler(w http.ResponseWriter, r *http.Request) {
 			posts.title, 
 			posts.slug, 
 			posts.url, 
-			posts.summary, 
+			CASE posts.dead 
+				WHEN 0 THEN "" 
+				WHEN 1 THEN posts.content 
+			END AS content, 
 			posts.date AS dt, 
 			posts.sentiment, 
 			COALESCE(posts.image, ""), 
@@ -245,7 +248,8 @@ func PostsByCatHandler(w http.ResponseWriter, r *http.Request) {
 				COUNT(*) 
 				FROM aggregator_post AS posts 
 				INNER JOIN aggregator_category AS cats ON posts.category_id = cats.title 
-				WHERE cats.slug='%[1]s') 
+				WHERE cats.slug='%[1]s'), 
+			posts.dead 
 			FROM aggregator_post AS posts 
 			INNER JOIN aggregator_category AS cats ON posts.category_id = cats.title 
 			WHERE cats.slug='%[1]s' 
@@ -262,7 +266,7 @@ func PostsByCatHandler(w http.ResponseWriter, r *http.Request) {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
 				&post.Sentiment, &post.Image, &post.Wordcloud, &post.CategoryID.Title, &post.CategoryID.Slug,
-				&post.CategoryID.Thumbnail, &post.Hits, &post.Hits)
+				&post.CategoryID.Thumbnail, &post.Hits, &post.Hits, &post.TotalPosts, &post.Status)
 			if err != nil {
 				return
 			}
@@ -305,7 +309,10 @@ func PostsByTagHandler(w http.ResponseWriter, r *http.Request) {
 			posts.title, 
 			posts.slug, 
 			posts.url, 
-			posts.summary, 
+			CASE posts.dead 
+				WHEN 0 THEN "" 
+				WHEN 1 THEN posts.content 
+			END AS content, 
 			posts.date AS dt, 
 			posts.sentiment, 
 			COALESCE(posts.image, ""), 
@@ -319,7 +326,8 @@ func PostsByTagHandler(w http.ResponseWriter, r *http.Request) {
 				INNER JOIN aggregator_category AS cats ON posts.category_id = cats.title 
 				INNER JOIN aggregator_post_tags AS post_tags ON post_tags.post_id = posts.title 
 				INNER JOIN aggregator_tags AS tags ON post_tags.tags_id = tags.title 
-				WHERE tags.slug='%[1]s') 
+				WHERE tags.slug='%[1]s'), 
+			posts.dead 
 			FROM aggregator_post AS posts 
 			INNER JOIN aggregator_category AS cats ON posts.category_id = cats.title 
 			INNER JOIN aggregator_post_tags AS post_tags ON post_tags.post_id = posts.title 
@@ -338,7 +346,7 @@ func PostsByTagHandler(w http.ResponseWriter, r *http.Request) {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
 				&post.Sentiment, &post.Image, &post.Wordcloud, &post.CategoryID.Title, &post.CategoryID.Slug,
-				&post.CategoryID.Thumbnail, &post.Hits, &post.TotalPosts)
+				&post.CategoryID.Thumbnail, &post.Hits, &post.TotalPosts, &post.Status)
 			if err != nil {
 				return
 			}
@@ -454,7 +462,10 @@ func TodayPostsHandler(w http.ResponseWriter, r *http.Request) {
 			posts.title, 
 			posts.slug, 
 			posts.url, 
-			posts.summary, 
+			CASE posts.dead 
+				WHEN 0 THEN "" 
+				WHEN 1 THEN posts.content 
+			END AS content, 
 			posts.date, 
 			posts.sentiment, 
 			COALESCE(posts.image, ""), 
@@ -467,7 +478,8 @@ func TodayPostsHandler(w http.ResponseWriter, r *http.Request) {
 				COUNT(*) 
 				FROM aggregator_post as posts
 				INNER JOIN aggregator_category as cats ON posts.category_id = cats.title 
-				WHERE date > '%[1]s')
+				WHERE date > '%[1]s'), 
+			posts.dead 
 			FROM aggregator_post as posts 
 			INNER JOIN aggregator_category as cats ON posts.category_id = cats.title 
 			WHERE date > '%[1]s' 
@@ -485,7 +497,7 @@ func TodayPostsHandler(w http.ResponseWriter, r *http.Request) {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
 				&post.Sentiment, &post.Image, &post.Wordcloud, &post.CategoryID.Title, &post.CategoryID.Slug,
-				&post.CategoryID.Thumbnail, &post.Hits, &post.TotalPosts)
+				&post.CategoryID.Thumbnail, &post.Hits, &post.TotalPosts, &post.Status)
 			if err != nil {
 				return
 			}
@@ -1073,7 +1085,10 @@ func MostPopularPostsHandler(w http.ResponseWriter, r *http.Request) {
 			posts.title, 
 			posts.slug, 
 			posts.url, 
-			posts.summary, 
+			CASE posts.dead 
+				WHEN 0 THEN "" 
+				WHEN 1 THEN posts.content 
+			END AS content, 
 			posts.date, 
 			posts.sentiment, 
 			COALESCE(posts.image, ""), 
@@ -1081,7 +1096,8 @@ func MostPopularPostsHandler(w http.ResponseWriter, r *http.Request) {
 			posts.category_id, 
 			cats.slug, 
 			COALESCE(cats.thumbnail, ""), 
-			posts.hits 
+			posts.hits, 
+			posts.dead 
 			FROM aggregator_post as posts 
 			INNER JOIN aggregator_category as cats ON posts.category_id = cats.title
 			WHERE YEAR(posts.date) = YEAR(CURRENT_DATE()) 
@@ -1100,7 +1116,7 @@ func MostPopularPostsHandler(w http.ResponseWriter, r *http.Request) {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
 				&post.Sentiment, &post.Image, &post.Wordcloud, &post.CategoryID.Title, &post.CategoryID.Slug,
-				&post.CategoryID.Thumbnail, &post.Hits)
+				&post.CategoryID.Thumbnail, &post.Hits, &post.Status)
 			if err != nil {
 				return
 			}
