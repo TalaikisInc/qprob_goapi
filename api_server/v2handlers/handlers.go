@@ -16,7 +16,7 @@ import (
 
 var cache = lrucache.New(104857600*3, 10800*2) //300 Mb, 6 hours
 var postsPerPage = 20
-var catsPerPage = 100
+var catsPerPage = 40
 
 func TagsByPostHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -585,12 +585,18 @@ func FilledTagsHandler(w http.ResponseWriter, r *http.Request) {
 func TopTagsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
+	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[4])
+	p, err := strconv.Atoi(page)
+	if err != nil {
+		return
+	}
+
 	cached, isCached := cache.Get("top_tags_")
 	if isCached == false {
 		db := database.Connect()
 		defer db.Close()
 
-		query := `SELECT 
+		query := fmt.Sprintf(`SELECT 
 			tags.title, 
 			tags.slug, 
 			COUNT(posts.title) AS cnt 
@@ -599,7 +605,7 @@ func TopTagsHandler(w http.ResponseWriter, r *http.Request) {
 			INNER JOIN aggregator_post as posts ON post_tags.post_id = posts.title 
 			GROUP BY tags.title 
 			ORDER BY COUNT(*) DESC 
-			LIMIT 30;`
+			LIMIT %[1]d, %[2]d;`, catsPerPage*p, catsPerPage)
 
 		rows, err := db.Query(query)
 		if err != nil {
