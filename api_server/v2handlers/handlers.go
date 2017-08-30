@@ -1035,7 +1035,8 @@ func PostsByPopularityHandler(w http.ResponseWriter, r *http.Request) {
 			(SELECT 
 				COUNT(*) 
 				FROM aggregator_post
-				WHERE hits > 10) 
+				WHERE hits > 10), 
+			posts.dead 
 			FROM aggregator_post as posts 
 			INNER JOIN aggregator_category as cats ON posts.category_id = cats.title 
 			WHERE posts.hits > 10 
@@ -1053,7 +1054,7 @@ func PostsByPopularityHandler(w http.ResponseWriter, r *http.Request) {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
 				&post.Sentiment, &post.Image, &post.Wordcloud, &post.CategoryID.Title, &post.CategoryID.Slug,
-				&post.CategoryID.Thumbnail, &post.Hits, &post.TotalPosts)
+				&post.CategoryID.Thumbnail, &post.Hits, &post.TotalPosts, &post.Status)
 			if err != nil {
 				return
 			}
@@ -1106,11 +1107,18 @@ func MostPopularPostsHandler(w http.ResponseWriter, r *http.Request) {
 			cats.slug, 
 			COALESCE(cats.thumbnail, ""), 
 			posts.hits, 
+			(SELECT 
+				COUNT(*) 
+				FROM aggregator_post
+				WHERE YEAR(posts.date) = YEAR(CURRENT_DATE()) 
+				AND MONTH(posts.date) = MONTH(CURRENT_DATE())
+				AND hits > 10), 
 			posts.dead 
 			FROM aggregator_post as posts 
 			INNER JOIN aggregator_category as cats ON posts.category_id = cats.title
 			WHERE YEAR(posts.date) = YEAR(CURRENT_DATE()) 
 			AND MONTH(posts.date) = MONTH(CURRENT_DATE()) 
+			AND posts.hits > 10 
 			ORDER BY hits DESC 
 			LIMIT %[1]d,%[2]d;`, postsPerPage*p, postsPerPage)
 
@@ -1125,7 +1133,7 @@ func MostPopularPostsHandler(w http.ResponseWriter, r *http.Request) {
 			post := models.Post{}
 			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Content, &post.Date,
 				&post.Sentiment, &post.Image, &post.Wordcloud, &post.CategoryID.Title, &post.CategoryID.Slug,
-				&post.CategoryID.Thumbnail, &post.Hits, &post.Status)
+				&post.CategoryID.Thumbnail, &post.Hits, &post.TotalPosts, &post.Status)
 			if err != nil {
 				return
 			}
