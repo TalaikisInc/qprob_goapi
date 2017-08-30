@@ -542,13 +542,20 @@ func FilledTagsHandler(w http.ResponseWriter, r *http.Request) {
 		query := fmt.Sprintf(`SELECT 
 			tags.title, 
 			tags.slug, 
-			COUNT(posts.title) AS cnt 
+			COUNT(posts.title) AS cnt,
+			(SELECT 
+				COUNT(*) 
+				FROM aggregator_tags AS tags 
+				INNER JOIN aggregator_post_tags AS post_tags ON tags.title = post_tags.tags_id 
+				INNER JOIN aggregator_post as posts ON post_tags.post_id = posts.title 
+				GROUP BY tags.title 
+				HAVING cnt > 100) AS nm 
 			FROM aggregator_tags AS tags 
 			INNER JOIN aggregator_post_tags AS post_tags ON tags.title = post_tags.tags_id 
 			INNER JOIN aggregator_post as posts ON post_tags.post_id = posts.title 
 			GROUP BY tags.title 
 			HAVING cnt > %[1]d 
-			ORDER BY tags.title
+			ORDER BY COUNT(*) DESC 
 			LIMIT %[2]d, %[3]d;`, c, catsPerPage*p, catsPerPage)
 
 		rows, err := db.Query(query)
@@ -561,7 +568,7 @@ func FilledTagsHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			tag := models.Tag{}
 
-			err := rows.Scan(&tag.Title, &tag.Slug, &tag.PostCnt)
+			err := rows.Scan(&tag.Title, &tag.Slug, &tag.PostCnt, , &tag.TotalTags)
 			if err != nil {
 				return
 			}
@@ -599,7 +606,15 @@ func TopTagsHandler(w http.ResponseWriter, r *http.Request) {
 		query := fmt.Sprintf(`SELECT 
 			tags.title, 
 			tags.slug, 
-			COUNT(posts.title) AS cnt 
+			COUNT(posts.title) AS cnt, 
+			(SELECT 
+				COUNT(*) 
+				FROM aggregator_tags as tags 
+				INNER JOIN aggregator_post_tags AS post_tags ON tags.title = post_tags.tags_id 
+				INNER JOIN aggregator_post as posts ON post_tags.post_id = posts.title 
+				GROUP BY tags.title 
+				ORDER BY COUNT(*) AS cnt 
+				HAVING cnt > 100) AS nm 
 			FROM aggregator_tags AS tags 
 			INNER JOIN aggregator_post_tags AS post_tags ON tags.title = post_tags.tags_id 
 			INNER JOIN aggregator_post as posts ON post_tags.post_id = posts.title 
@@ -617,7 +632,7 @@ func TopTagsHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			tag := models.Tag{}
 
-			err := rows.Scan(&tag.Title, &tag.Slug, &tag.PostCnt)
+			err := rows.Scan(&tag.Title, &tag.Slug, &tag.PostCnt, &tag.TotalTags)
 			if err != nil {
 				return
 			}
