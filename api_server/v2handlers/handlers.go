@@ -3,7 +3,6 @@ package v2handlers
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -232,6 +231,7 @@ func PostsByCatHandler(w http.ResponseWriter, r *http.Request) {
 			posts.title, 
 			posts.slug, 
 			posts.url, 
+			posts.summary, 
 			CASE posts.dead 
 				WHEN 0 THEN "" 
 				WHEN 1 THEN posts.content 
@@ -264,9 +264,9 @@ func PostsByCatHandler(w http.ResponseWriter, r *http.Request) {
 		posts := make([]models.Post, 0)
 		for rows.Next() {
 			post := models.Post{}
-			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
+			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Content, &post.Date,
 				&post.Sentiment, &post.Image, &post.Wordcloud, &post.CategoryID.Title, &post.CategoryID.Slug,
-				&post.CategoryID.Thumbnail, &post.Hits, &post.Hits, &post.TotalPosts, &post.Status)
+				&post.CategoryID.Thumbnail, &post.Hits, &post.TotalPosts, &post.Status)
 			if err != nil {
 				return
 			}
@@ -309,6 +309,7 @@ func PostsByTagHandler(w http.ResponseWriter, r *http.Request) {
 			posts.title, 
 			posts.slug, 
 			posts.url, 
+			posts.summary, 
 			CASE posts.dead 
 				WHEN 0 THEN "" 
 				WHEN 1 THEN posts.content 
@@ -344,7 +345,7 @@ func PostsByTagHandler(w http.ResponseWriter, r *http.Request) {
 		posts := make([]models.Post, 0)
 		for rows.Next() {
 			post := models.Post{}
-			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
+			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Content, &post.Date,
 				&post.Sentiment, &post.Image, &post.Wordcloud, &post.CategoryID.Title, &post.CategoryID.Slug,
 				&post.CategoryID.Thumbnail, &post.Hits, &post.TotalPosts, &post.Status)
 			if err != nil {
@@ -462,6 +463,7 @@ func TodayPostsHandler(w http.ResponseWriter, r *http.Request) {
 			posts.title, 
 			posts.slug, 
 			posts.url, 
+			posts.summary, 
 			CASE posts.dead 
 				WHEN 0 THEN "" 
 				WHEN 1 THEN posts.content 
@@ -495,7 +497,7 @@ func TodayPostsHandler(w http.ResponseWriter, r *http.Request) {
 		posts := make([]models.Post, 0)
 		for rows.Next() {
 			post := models.Post{}
-			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
+			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Content, &post.Date,
 				&post.Sentiment, &post.Image, &post.Wordcloud, &post.CategoryID.Title, &post.CategoryID.Slug,
 				&post.CategoryID.Thumbnail, &post.Hits, &post.TotalPosts, &post.Status)
 			if err != nil {
@@ -1076,15 +1078,22 @@ func PostsByPopularityHandler(w http.ResponseWriter, r *http.Request) {
 func MostPopularPostsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
+	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
+	p, err := strconv.Atoi(page)
+	if err != nil || p > 20 {
+		return
+	}
+
 	cached, isCached := cache.Get("most_popular_")
 	if isCached == false {
 		db := database.Connect()
 		defer db.Close()
 
-		query := `SELECT 
+		query := fmt.Sprintf(`SELECT 
 			posts.title, 
 			posts.slug, 
 			posts.url, 
+			posts.summary, 
 			CASE posts.dead 
 				WHEN 0 THEN "" 
 				WHEN 1 THEN posts.content 
@@ -1103,7 +1112,7 @@ func MostPopularPostsHandler(w http.ResponseWriter, r *http.Request) {
 			WHERE YEAR(posts.date) = YEAR(CURRENT_DATE()) 
 			AND MONTH(posts.date) = MONTH(CURRENT_DATE()) 
 			ORDER BY hits DESC 
-			LIMIT 15;`
+			LIMIT %[1]d,%[2]d;`, postsPerPage*p, postsPerPage)
 
 		rows, err := db.Query(query)
 		if err != nil {
@@ -1114,7 +1123,7 @@ func MostPopularPostsHandler(w http.ResponseWriter, r *http.Request) {
 		posts := make([]models.Post, 0)
 		for rows.Next() {
 			post := models.Post{}
-			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
+			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Content, &post.Date,
 				&post.Sentiment, &post.Image, &post.Wordcloud, &post.CategoryID.Title, &post.CategoryID.Slug,
 				&post.CategoryID.Thumbnail, &post.Hits, &post.Status)
 			if err != nil {
@@ -1234,7 +1243,6 @@ func SentimentHandler(w http.ResponseWriter, r *http.Request) {
 
 		rows, err := db.Query(query)
 		if err != nil {
-			log.Fatal(err)
 			return
 		}
 		defer rows.Close()
@@ -1244,19 +1252,16 @@ func SentimentHandler(w http.ResponseWriter, r *http.Request) {
 			s := models.Sentiment{}
 			err := rows.Scan(&s.Date, &s.Sentiment)
 			if err != nil {
-				log.Fatal(err)
 				return
 			}
 			sents = append(sents, s)
 		}
 		if err = rows.Err(); err != nil {
-			log.Fatal(err)
 			return
 		}
 
 		j, err := json.Marshal(sents)
 		if err != nil {
-			log.Fatal(err)
 			return
 		}
 
