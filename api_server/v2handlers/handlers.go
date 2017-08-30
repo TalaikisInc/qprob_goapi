@@ -14,7 +14,7 @@ import (
 	"github.com/xenu256/qprob_goapi/api_server/models"
 )
 
-var cache = lrucache.New(104857600*3, 10800*2) //300 Mb, 6 hours
+var cache = lrucache.New(104857600*3, 60*60*24) //300 Mb, 24 hours
 var postsPerPage = 20
 var catsPerPage = 40
 
@@ -528,13 +528,8 @@ func FilledTagsHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[4])
-	p, err := strconv.Atoi(page)
-	if err != nil {
-		return
-	}
 
-	cached, isCached := cache.Get("tags_pop_" + cnt + "_" + page)
+	cached, isCached := cache.Get("tags_pop_" + cnt)
 	if isCached == false {
 		db := database.Connect()
 		defer db.Close()
@@ -542,21 +537,14 @@ func FilledTagsHandler(w http.ResponseWriter, r *http.Request) {
 		query := fmt.Sprintf(`SELECT 
 			tags.title, 
 			tags.slug, 
-			COUNT(posts.title) AS cnt,
-			(SELECT 
-				COUNT(*) 
-				FROM aggregator_tags AS tags 
-				INNER JOIN aggregator_post_tags AS post_tags ON tags.title = post_tags.tags_id 
-				INNER JOIN aggregator_post as posts ON post_tags.post_id = posts.title 
-				GROUP BY tags.title 
-				HAVING cnt > 100) AS nm 
+			COUNT(posts.title) AS cnt 
 			FROM aggregator_tags AS tags 
 			INNER JOIN aggregator_post_tags AS post_tags ON tags.title = post_tags.tags_id 
 			INNER JOIN aggregator_post as posts ON post_tags.post_id = posts.title 
 			GROUP BY tags.title 
 			HAVING cnt > %[1]d 
-			ORDER BY COUNT(*) DESC 
-			LIMIT %[2]d, %[3]d;`, c, catsPerPage*p, catsPerPage)
+			ORDER BY tags.title 
+			LIMIT 100;`, c)
 
 		rows, err := db.Query(query)
 		if err != nil {
@@ -568,7 +556,7 @@ func FilledTagsHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			tag := models.Tag{}
 
-			err := rows.Scan(&tag.Title, &tag.Slug, &tag.PostCnt, &tag.TotalTags)
+			err := rows.Scan(&tag.Title, &tag.Slug, &tag.PostCnt)
 			if err != nil {
 				return
 			}
@@ -583,7 +571,7 @@ func FilledTagsHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		cache.Set("tags_pop_"+cnt+"_"+page, j)
+		cache.Set("tags_pop_"+cnt, j)
 		w.Write(j)
 	}
 	w.Write(cached)
@@ -592,35 +580,21 @@ func FilledTagsHandler(w http.ResponseWriter, r *http.Request) {
 func TopTagsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
-	p, err := strconv.Atoi(page)
-	if err != nil {
-		return
-	}
-
-	cached, isCached := cache.Get("top_tags_" + page)
+	cached, isCached := cache.Get("top_tags_")
 	if isCached == false {
 		db := database.Connect()
 		defer db.Close()
 
-		query := fmt.Sprintf(`SELECT 
+		query := `SELECT 
 			tags.title, 
 			tags.slug, 
-			COUNT(posts.title) AS cnt, 
-			(SELECT 
-				COUNT(*) 
-				FROM aggregator_tags as tags 
-				INNER JOIN aggregator_post_tags AS post_tags ON tags.title = post_tags.tags_id 
-				INNER JOIN aggregator_post as posts ON post_tags.post_id = posts.title 
-				GROUP BY tags.title 
-				ORDER BY COUNT(*) AS cnt 
-				HAVING cnt > 100) AS nm 
+			COUNT(posts.title) AS cnt 
 			FROM aggregator_tags AS tags 
 			INNER JOIN aggregator_post_tags AS post_tags ON tags.title = post_tags.tags_id 
 			INNER JOIN aggregator_post as posts ON post_tags.post_id = posts.title 
 			GROUP BY tags.title 
 			ORDER BY COUNT(*) DESC 
-			LIMIT %[1]d, %[2]d;`, catsPerPage*p, catsPerPage)
+			LIMIT 40;`
 
 		rows, err := db.Query(query)
 		if err != nil {
@@ -632,7 +606,7 @@ func TopTagsHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			tag := models.Tag{}
 
-			err := rows.Scan(&tag.Title, &tag.Slug, &tag.PostCnt, &tag.TotalTags)
+			err := rows.Scan(&tag.Title, &tag.Slug, &tag.PostCnt)
 			if err != nil {
 				return
 			}
@@ -647,7 +621,7 @@ func TopTagsHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		cache.Set("top_tags_"+page, j)
+		cache.Set("top_tags_", j)
 		w.Write(j)
 	}
 	w.Write(cached)

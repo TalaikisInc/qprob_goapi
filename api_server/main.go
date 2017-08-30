@@ -21,7 +21,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-var cache = lrucache.New(104857600, 10800) //100 Mb, 3 hours
+var cache = lrucache.New(104857600, 60*60*24) //100 Mb, 24 hours
 
 func init() {
 	err := godotenv.Load("../.env")
@@ -61,8 +61,8 @@ func main() {
 	app.HandleFunc("/v2.0/popular/{hits}/{page}/", v2handlers.PopularPostsHandler).Methods("GET")
 	app.HandleFunc("/v2.0/popular_posts/{page}/", v2handlers.PostsByPopularityHandler).Methods("GET")
 	app.HandleFunc("/v2.0/most_popular/{page}/", v2handlers.MostPopularPostsHandler).Methods("GET")
-	app.HandleFunc("/v2.0/filled_tags/{cnt}/{page}/", v2handlers.FilledTagsHandler).Methods("GET")
-	app.HandleFunc("/v2.0/top_tags/{page}/", v2handlers.TopTagsHandler).Methods("GET")
+	app.HandleFunc("/v2.0/filled_tags/{cnt}/", v2handlers.FilledTagsHandler).Methods("GET")
+	app.HandleFunc("/v2.0/top_tags/", v2handlers.TopTagsHandler).Methods("GET")
 	app.HandleFunc("/v2.0/post_hit/{postSlug}/", v2handlers.UpdatePostHitHandler).Methods("GET")
 	app.HandleFunc("/v2.0/meta/", v2handlers.MetaHandler).Methods("GET")
 	app.HandleFunc("/v2.0/sentiment/", v2handlers.SentimentHandler).Methods("GET")
