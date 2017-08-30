@@ -568,7 +568,7 @@ func FilledTagsHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			tag := models.Tag{}
 
-			err := rows.Scan(&tag.Title, &tag.Slug, &tag.PostCnt, , &tag.TotalTags)
+			err := rows.Scan(&tag.Title, &tag.Slug, &tag.PostCnt, &tag.TotalTags)
 			if err != nil {
 				return
 			}
