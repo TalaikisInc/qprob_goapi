@@ -585,7 +585,7 @@ func FilledTagsHandler(w http.ResponseWriter, r *http.Request) {
 func TopTagsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[4])
+	page := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
 	p, err := strconv.Atoi(page)
 	if err != nil {
 		return
