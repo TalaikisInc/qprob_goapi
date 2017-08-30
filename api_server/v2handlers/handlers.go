@@ -591,7 +591,7 @@ func TopTagsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cached, isCached := cache.Get("top_tags_")
+	cached, isCached := cache.Get("top_tags_" + page)
 	if isCached == false {
 		db := database.Connect()
 		defer db.Close()
@@ -632,7 +632,7 @@ func TopTagsHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		cache.Set("top_tags_", j)
+		cache.Set("top_tags_"+page, j)
 		w.Write(j)
 	}
 	w.Write(cached)
@@ -1091,7 +1091,7 @@ func MostPopularPostsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cached, isCached := cache.Get("most_popular_")
+	cached, isCached := cache.Get("most_popular_" + page)
 	if isCached == false {
 		db := database.Connect()
 		defer db.Close()
@@ -1154,7 +1154,7 @@ func MostPopularPostsHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		cache.Set("most_popular_", j)
+		cache.Set("most_popular_"+page, j)
 		w.Write(j)
 
 	}
