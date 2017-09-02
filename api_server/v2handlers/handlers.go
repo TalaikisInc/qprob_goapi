@@ -885,19 +885,6 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		defer rows.Close()
 
-		query = fmt.Sprintf(`UPDATE aggregator_post 
-			SET hits = hits + 1 
-			WHERE slug='%[1]s';`, postSlug)
-
-		r, err := db.Exec(query)
-		if err != nil {
-			return
-		}
-		count, err := r.RowsAffected()
-		if err != nil || count != 1 {
-			return
-		}
-
 		posts := make([]models.Post, 0)
 		for rows.Next() {
 			post := models.Post{}
@@ -923,6 +910,22 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(j)
 	}
 	w.Write(cached)
+
+	db := database.Connect()
+	defer db.Close()
+
+	prep, err := db.Prepare(`UPDATE aggregator_post 
+		SET hits = hits + 1 
+		WHERE slug= ? ;`)
+	if err != nil {
+		return
+	}
+	defer prep.Close()
+	rows, err := prep.Query(postSlug)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
 }
 
 func PopularPostsHandler(w http.ResponseWriter, r *http.Request) {
@@ -1148,34 +1151,6 @@ func MostPopularPostsHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 	w.Write(cached)
-}
-
-func UpdatePostHitHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	postSlug := url.QueryEscape(strings.Split(r.RequestURI, "/")[3])
-	if len(postSlug) == 0 {
-		return
-	}
-
-	db := database.Connect()
-	defer db.Close()
-
-	query := fmt.Sprintf(`UPDATE aggregator_post 
-		SET hits = hits + 1 
-		WHERE slug='%[1]s';`, postSlug)
-
-	rows, err := db.Exec(query)
-	if err != nil {
-		return
-	}
-	count, err := rows.RowsAffected()
-	if err != nil || count != 1 {
-		w.Write([]byte(`{"status": 400}`))
-	} else {
-		w.Write([]byte(`{"status": 200}`))
-	}
-
 }
 
 func MetaHandler(w http.ResponseWriter, r *http.Request) {
