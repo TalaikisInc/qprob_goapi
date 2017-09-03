@@ -92,6 +92,10 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 			posts.slug, 
 			posts.url, 
 			posts.summary, 
+			CASE posts.dead 
+				WHEN 0 THEN "" 
+				WHEN 1 THEN posts.content 
+			END AS content, 
 			posts.date, 
 			posts.sentiment, 
 			COALESCE(posts.image, ""), 
@@ -117,7 +121,7 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 		posts := make([]models.Post, 0)
 		for rows.Next() {
 			post := models.Post{}
-			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Date,
+			err := rows.Scan(&post.Title, &post.Slug, &post.URL, &post.Summary, &post.Content, &post.Date,
 				&post.Sentiment, &post.Image, &post.Wordcloud, &post.CategoryID.Title, &post.CategoryID.Slug,
 				&post.CategoryID.Thumbnail, &post.Hits, &post.TotalPosts)
 			if err != nil {
