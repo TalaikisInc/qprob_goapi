@@ -6,7 +6,7 @@ if [ ! -d "$SOURCES" ]; then
     mkdir $SOURCES
 fi
 
-if [ -d "$SOURCES/QProb" ]; then
+if [ -d "$SOURCES/qprob_goapi" ]; then
     cd $SOURCES/qprob_goapi
     git fetch --all
     git reset --hard origin/master
