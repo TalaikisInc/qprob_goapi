@@ -66,11 +66,10 @@ func TagsByPostHandler(w http.ResponseWriter, r *http.Request) {
 
 		cache.Set("post_tags_"+title, j)
 		w.Write(j)
-		w.WriteHeader(http.StatusOK)
 
 	}
 	w.Write(cached)
-	w.WriteHeader(http.StatusOK)
+
 }
 
 func PostsHandler(w http.ResponseWriter, r *http.Request) {
