@@ -914,11 +914,11 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write(cached)
 
-	db := database.Connect()
+	/*db := database.Connect()
 	defer db.Close()
 
-	prep, err := db.Prepare(`UPDATE aggregator_post 
-		SET hits = hits + 1 
+	prep, err := db.Prepare(`UPDATE aggregator_post
+		SET hits = hits + 1
 		WHERE slug= ? ;`)
 	if err != nil {
 		return
@@ -928,7 +928,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	defer rows.Close()
+	defer rows.Close()*/
 }
 
 func PopularPostsHandler(w http.ResponseWriter, r *http.Request) {
