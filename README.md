@@ -3,8 +3,8 @@
 
 # Demo(s)
 
-https://api.tradingnews.talaikis.com/posts/ (quantitative trading)
-https://api.stockmarketnews.talaikis.com/posts/ (stock market)
+* https://api.tradingnews.talaikis.com/posts/ (quantitative trading)
+* https://api.stockmarketnews.talaikis.com/posts/ (stock market)
 * https://api.bsnssnws.com/ (business)
 * https://api.entreprnrnws.com/ (entrepreneurship)
 * https://api.realestenews.com/ (real estate investing)
